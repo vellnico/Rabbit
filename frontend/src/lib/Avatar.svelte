@@ -14,13 +14,17 @@
     <img src={url} alt="" onerror={() => (failed = true)} hidden />
   </div>
 {:else}
-  <div class="avatar letter" style="width:{size}px;height:{size}px;font-size:{size * 0.5}px">
+  <div class="avatar letter" style="width:{size}px;height:{size}px;font-size:{size * 0.46}px">
     {account ? account.name[0].toUpperCase() : '?'}
   </div>
 {/if}
 
 <style>
-  .avatar { border-radius: 6px; flex: none; }
+  .avatar { border-radius: 8px; flex: none; box-shadow: 0 0 0 1px rgb(255 255 255 / .06); }
   .skin { image-rendering: pixelated; background-repeat: no-repeat; background-color: var(--raised); }
-  .letter { display: grid; place-items: center; background: var(--raised); color: var(--muted); font-weight: 600; }
+  .letter {
+    display: grid; place-items: center; font-weight: 700;
+    background: linear-gradient(135deg, rgb(var(--accent-rgb) / .35), rgb(var(--accent-rgb) / .08));
+    color: var(--accent);
+  }
 </style>

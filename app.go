@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -18,11 +18,13 @@ import (
 	"github.com/vellnico/rabbit/internal/java"
 	"github.com/vellnico/rabbit/internal/launch"
 	"github.com/vellnico/rabbit/internal/mojang"
+	"github.com/vellnico/rabbit/internal/msg"
 	"github.com/vellnico/rabbit/internal/paths"
 	"github.com/vellnico/rabbit/internal/store"
 )
 
 // App is bound to the frontend; every exported method is callable from JS.
+// Errors are either plain text or "@key|detail" codes the frontend translates.
 type App struct {
 	ctx context.Context
 
@@ -30,6 +32,7 @@ type App struct {
 	settings store.Settings
 	accounts []auth.Account
 	running  map[string]*session
+	login    context.CancelFunc // pending browser login
 }
 
 type session struct {
@@ -56,18 +59,25 @@ type AccountView struct {
 }
 
 type State struct {
-	Settings  store.Settings   `json:"settings"`
-	Accounts  []AccountView    `json:"accounts"`
-	Instances []store.Instance `json:"instances"`
-	Running   []string         `json:"running"`
-	MaxMemory int              `json:"maxMemory"`
-	DataDir   string           `json:"dataDir"`
+	Settings   store.Settings   `json:"settings"`
+	Accounts   []AccountView    `json:"accounts"`
+	Instances  []store.Instance `json:"instances"`
+	Running    []string         `json:"running"`
+	MaxMemory  int              `json:"maxMemory"`
+	DataDir    string           `json:"dataDir"`
+	ElyBrowser bool             `json:"elyBrowser"` // OAuth login available
 }
 
 func (a *App) GetState() State {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	s := State{Settings: a.settings, Instances: store.LoadInstances(), MaxMemory: totalMemoryMB(), DataDir: paths.Root()}
+	s := State{
+		Settings:   a.settings,
+		Instances:  store.LoadInstances(),
+		MaxMemory:  totalMemoryMB(),
+		DataDir:    paths.Root(),
+		ElyBrowser: auth.OAuthConfigured(),
+	}
 	for _, acc := range a.accounts {
 		s.Accounts = append(s.Accounts, AccountView{acc.ID, acc.Kind, acc.Name, acc.UUID, acc.ElySkin})
 	}
@@ -88,7 +98,7 @@ type VersionInfo struct {
 func (a *App) ListVersions() ([]VersionInfo, error) {
 	m, err := mojang.FetchManifest(a.ctx)
 	if err != nil {
-		return nil, fmt.Errorf("не удалось получить список версий: %w", err)
+		return nil, msg.Wrap("versionsUnavailable", err)
 	}
 	out := make([]VersionInfo, 0, len(m.Versions))
 	for _, v := range m.Versions {
@@ -97,20 +107,37 @@ func (a *App) ListVersions() ([]VersionInfo, error) {
 	return out, nil
 }
 
-func (a *App) ListFabricLoaders(game string) ([]string, error) {
-	return mojang.FabricLoaders(a.ctx, game)
+// ListLoaderVersions returns versions of a mod loader for a game version,
+// newest first.
+func (a *App) ListLoaderVersions(loader, game string) ([]string, error) {
+	switch loader {
+	case "forge":
+		return mojang.ForgeVersions(a.ctx, game)
+	case "neoforge":
+		return mojang.NeoForgeVersions(a.ctx, game)
+	case "fabric", "quilt":
+		return mojang.ProfileLoaderVersions(a.ctx, loader, game)
+	}
+	return nil, nil
+}
+
+func validLoader(l string) bool {
+	return l == "vanilla" || mojang.IsProfileLoader(l) || mojang.IsInstallerLoader(l)
 }
 
 func (a *App) CreateInstance(name, game, loader, loaderVersion string) (store.Instance, error) {
 	if game == "" {
-		return store.Instance{}, errors.New("выберите версию")
+		return store.Instance{}, msg.E("pickVersion")
 	}
-	if loader != "fabric" {
-		loader, loaderVersion = "vanilla", ""
+	if !validLoader(loader) {
+		loader = "vanilla"
+	}
+	if loader == "vanilla" {
+		loaderVersion = ""
 	} else if loaderVersion == "" {
-		list, err := mojang.FabricLoaders(a.ctx, game)
+		list, err := a.ListLoaderVersions(loader, game)
 		if err != nil || len(list) == 0 {
-			return store.Instance{}, errors.New("Fabric недоступен для этой версии")
+			return store.Instance{}, msg.E("loaderUnavailable")
 		}
 		loaderVersion = list[0]
 	}
@@ -126,7 +153,7 @@ func (a *App) DeleteInstance(id string) error {
 	_, busy := a.running[id]
 	a.mu.Unlock()
 	if busy {
-		return errors.New("сначала закройте игру")
+		return msg.E("closeGameFirst")
 	}
 	return store.DeleteInstance(id)
 }
@@ -159,6 +186,15 @@ func (a *App) SaveSettings(memoryMB int, closeOnLaunch bool, jvmArgs string) err
 	return store.SaveSettings(a.settings)
 }
 
+// SetAppearance stores the accent color and language ("" = system).
+func (a *App) SetAppearance(accent, language string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.settings.Accent = accent
+	a.settings.Language = language
+	return store.SaveSettings(a.settings)
+}
+
 // ---- accounts ----
 
 func (a *App) addAccount(acc *auth.Account) {
@@ -185,12 +221,43 @@ func (a *App) AddOfflineAccount(nick string) error {
 	return nil
 }
 
-// LoginEly returns "totp" when a two-factor code is required.
+// LoginElyBrowser opens Ely.by in the system browser and waits for the user
+// to confirm access. CancelLogin aborts the wait.
+func (a *App) LoginElyBrowser() error {
+	ctx, cancel := context.WithCancel(a.ctx)
+	a.mu.Lock()
+	if a.login != nil {
+		a.login()
+	}
+	a.login = cancel
+	a.mu.Unlock()
+	defer cancel()
+
+	acc, err := auth.LoginElyBrowser(ctx, func(url string) { runtime.BrowserOpenURL(a.ctx, url) })
+	runtime.WindowShow(a.ctx) // bring the launcher back from behind the browser
+	if err != nil {
+		return err
+	}
+	a.addAccount(acc)
+	return nil
+}
+
+func (a *App) CancelLogin() {
+	a.mu.Lock()
+	if a.login != nil {
+		a.login()
+		a.login = nil
+	}
+	a.mu.Unlock()
+}
+
+// LoginEly signs in with a password (used when the build has no OAuth
+// credentials). Returns "totp" when a two-factor code is required.
 func (a *App) LoginEly(login, password, totp string) (string, error) {
 	acc, err := auth.LoginEly(a.ctx, login, password, totp)
 	if errors.Is(err, auth.ErrTwoFactor) {
 		if totp != "" {
-			return "totp", errors.New("неверный код")
+			return "totp", msg.E("badTotp")
 		}
 		return "totp", nil
 	}
@@ -234,7 +301,7 @@ func (a *App) SelectAccount(id string) {
 
 type progressEvent struct {
 	Instance string `json:"instance"`
-	Stage    string `json:"stage"`
+	Stage    string `json:"stage"` // translated by the frontend
 	Done     int    `json:"done"`
 	Total    int    `json:"total"`
 }
@@ -256,7 +323,7 @@ func (a *App) Launch(id string) error {
 	a.mu.Lock()
 	if _, busy := a.running[id]; busy {
 		a.mu.Unlock()
-		return errors.New("уже запущено")
+		return msg.E("alreadyRunning")
 	}
 	var acc *auth.Account
 	for i := range a.accounts {
@@ -266,7 +333,7 @@ func (a *App) Launch(id string) error {
 	}
 	if acc == nil {
 		a.mu.Unlock()
-		return errors.New("добавьте аккаунт")
+		return msg.E("addAccount")
 	}
 	account := *acc
 	settings := a.settings
@@ -277,7 +344,7 @@ func (a *App) Launch(id string) error {
 
 	go func() {
 		a.emitState(stateEvent{Instance: id, State: "preparing"})
-		opts, err := a.prepare(ctx, in, &account, settings)
+		opts, err := a.prepare(ctx, in, &account)
 		if err == nil {
 			opts.MemoryMB = settings.MemoryMB
 			opts.ExtraJVM = settings.JVMArgs
@@ -293,11 +360,11 @@ func (a *App) Launch(id string) error {
 			a.mu.Lock()
 			delete(a.running, id)
 			a.mu.Unlock()
-			msg := err.Error()
+			text := err.Error()
 			if ctx.Err() != nil {
-				msg = ""
+				text = ""
 			}
-			a.emitState(stateEvent{Instance: id, State: "error", Message: msg})
+			a.emitState(stateEvent{Instance: id, State: "error", Message: text})
 			return
 		}
 		in.LastPlayed = time.Now()
@@ -318,7 +385,7 @@ func (a *App) finish(id string, code int, tail []string) {
 	e := stateEvent{Instance: id, State: "stopped"}
 	if code != 0 && code != 1 { // 1 is also used for normal "Stop" from the launcher
 		e.State = "error"
-		e.Message = fmt.Sprintf("Игра завершилась с кодом %d", code)
+		e.Message = msg.E("crashed", strconv.Itoa(code)).Error()
 		if len(tail) > 40 {
 			tail = tail[len(tail)-40:]
 		}
@@ -327,18 +394,18 @@ func (a *App) finish(id string, code int, tail []string) {
 	a.emitState(e)
 }
 
-func (a *App) prepare(ctx context.Context, in store.Instance, acc *auth.Account, s store.Settings) (launch.Options, error) {
+func (a *App) prepare(ctx context.Context, in store.Instance, acc *auth.Account) (launch.Options, error) {
 	report := func(stage string, done, total int) {
 		runtime.EventsEmit(a.ctx, "progress", progressEvent{in.ID, stage, done, total})
 	}
-	report("Аккаунт", 0, 0)
+	report("account", 0, 0)
 	if acc.Kind == auth.ElyBy {
 		ok, err := auth.Refresh(ctx, acc)
 		if err != nil {
-			return launch.Options{}, fmt.Errorf("Ely.by недоступен: %w", err)
+			return launch.Options{}, msg.Wrap("elyUnavailable", err)
 		}
 		if !ok {
-			return launch.Options{}, errors.New("сессия Ely.by истекла — войдите заново")
+			return launch.Options{}, msg.E("elyExpired")
 		}
 		a.mu.Lock()
 		for i := range a.accounts {
@@ -350,19 +417,12 @@ func (a *App) prepare(ctx context.Context, in store.Instance, acc *auth.Account,
 		a.mu.Unlock()
 	}
 
-	report("Версия", 0, 0)
+	// Vanilla first: loaders inherit from it and their installers need it.
+	report("version", 0, 0)
 	if err := mojang.EnsureVanilla(ctx, in.GameVersion); err != nil {
 		return launch.Options{}, err
 	}
-	versionID := in.GameVersion
-	if in.Loader == "fabric" {
-		id, err := mojang.EnsureFabric(ctx, in.GameVersion, in.LoaderVersion)
-		if err != nil {
-			return launch.Options{}, fmt.Errorf("Fabric: %w", err)
-		}
-		versionID = id
-	}
-	v, err := mojang.Resolve(versionID)
+	v, err := mojang.Resolve(in.GameVersion)
 	if err != nil {
 		return launch.Options{}, err
 	}
@@ -370,22 +430,43 @@ func (a *App) prepare(ctx context.Context, in store.Instance, acc *auth.Account,
 		return launch.Options{}, err
 	}
 
-	comp := v.JavaComponent()
-	report("Java", 0, 0)
-	javaExe, err := java.Ensure(ctx, comp, func(d, t int) { report("Java", d, t) })
+	report("java", 0, 0)
+	javaExe, err := java.Ensure(ctx, v.JavaComponent(), func(d, t int) { report("java", d, t) })
 	if err != nil {
-		return launch.Options{}, fmt.Errorf("Java: %w", err)
+		return launch.Options{}, msg.Wrap("javaFailed", err)
+	}
+
+	if in.Loader != "vanilla" && in.Loader != "" {
+		report("loader", 0, 0)
+		var id string
+		switch {
+		case mojang.IsProfileLoader(in.Loader):
+			id, err = mojang.EnsureProfileLoader(ctx, in.Loader, in.GameVersion, in.LoaderVersion)
+		case mojang.IsInstallerLoader(in.Loader):
+			id, err = mojang.EnsureInstallerLoader(ctx, in.Loader, in.GameVersion, in.LoaderVersion, javaExe)
+		default:
+			err = errors.New("unknown loader " + in.Loader)
+		}
+		if err != nil {
+			return launch.Options{}, msg.Wrap("loaderFailed", err)
+		}
+		if v, err = mojang.Resolve(id); err != nil {
+			return launch.Options{}, err
+		}
+		if err := mojang.Install(ctx, v, report); err != nil {
+			return launch.Options{}, err
+		}
 	}
 
 	var injector string
 	if acc.Kind == auth.ElyBy || acc.ElySkin {
-		report("authlib-injector", 0, 0)
+		report("injector", 0, 0)
 		injector, err = auth.EnsureInjector(ctx)
 		if err != nil {
 			return launch.Options{}, err
 		}
 	}
-	report("Запуск", 0, 0)
+	report("launch", 0, 0)
 	return launch.Options{Version: v, Java: javaExe, GameDir: paths.Instance(in.ID), Account: *acc, Injector: injector}, nil
 }
 

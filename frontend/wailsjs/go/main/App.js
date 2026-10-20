@@ -6,6 +6,10 @@ export function AddOfflineAccount(arg1) {
   return window['go']['main']['App']['AddOfflineAccount'](arg1);
 }
 
+export function CancelLogin() {
+  return window['go']['main']['App']['CancelLogin']();
+}
+
 export function CreateInstance(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['CreateInstance'](arg1, arg2, arg3, arg4);
 }
@@ -22,8 +26,8 @@ export function Launch(arg1) {
   return window['go']['main']['App']['Launch'](arg1);
 }
 
-export function ListFabricLoaders(arg1) {
-  return window['go']['main']['App']['ListFabricLoaders'](arg1);
+export function ListLoaderVersions(arg1, arg2) {
+  return window['go']['main']['App']['ListLoaderVersions'](arg1, arg2);
 }
 
 export function ListVersions() {
@@ -32,6 +36,10 @@ export function ListVersions() {
 
 export function LoginEly(arg1, arg2, arg3) {
   return window['go']['main']['App']['LoginEly'](arg1, arg2, arg3);
+}
+
+export function LoginElyBrowser() {
+  return window['go']['main']['App']['LoginElyBrowser']();
 }
 
 export function OpenInstanceFolder(arg1, arg2) {
@@ -52,6 +60,10 @@ export function SelectAccount(arg1) {
 
 export function SelectInstance(arg1) {
   return window['go']['main']['App']['SelectInstance'](arg1);
+}
+
+export function SetAppearance(arg1, arg2) {
+  return window['go']['main']['App']['SetAppearance'](arg1, arg2);
 }
 
 export function Stop(arg1) {

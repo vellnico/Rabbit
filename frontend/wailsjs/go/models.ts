@@ -27,6 +27,7 @@ export namespace main {
 	    running: string[];
 	    maxMemory: number;
 	    dataDir: string;
+	    elyBrowser: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new State(source);
@@ -40,6 +41,7 @@ export namespace main {
 	        this.running = source["running"];
 	        this.maxMemory = source["maxMemory"];
 	        this.dataDir = source["dataDir"];
+	        this.elyBrowser = source["elyBrowser"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -131,6 +133,8 @@ export namespace store {
 	    selectedInstance: string;
 	    closeOnLaunch: boolean;
 	    jvmArgs: string;
+	    accent: string;
+	    language: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -143,6 +147,8 @@ export namespace store {
 	        this.selectedInstance = source["selectedInstance"];
 	        this.closeOnLaunch = source["closeOnLaunch"];
 	        this.jvmArgs = source["jvmArgs"];
+	        this.accent = source["accent"];
+	        this.language = source["language"];
 	    }
 	}
 

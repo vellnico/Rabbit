@@ -254,7 +254,7 @@ type Version struct {
 		} `json:"file"`
 	} `json:"logging,omitempty"`
 
-	// JarID is the version whose client jar is used (set after merging).
+	// JarID is the vanilla version whose client jar is downloaded.
 	JarID string `json:"-"`
 }
 
@@ -309,7 +309,7 @@ func EnsureVanilla(ctx context.Context, id string) error {
 	if _, err := os.Stat(versionFile(id)); err == nil {
 		return nil
 	}
-	return fmt.Errorf("версия %s не найдена", id)
+	return fmt.Errorf("version %s not found", id)
 }
 
 // Resolve reads a version and merges its inheritsFrom chain.

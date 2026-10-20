@@ -5,6 +5,8 @@ import {main} from '../models';
 
 export function AddOfflineAccount(arg1:string):Promise<void>;
 
+export function CancelLogin():Promise<void>;
+
 export function CreateInstance(arg1:string,arg2:string,arg3:string,arg4:string):Promise<store.Instance>;
 
 export function DeleteInstance(arg1:string):Promise<void>;
@@ -13,11 +15,13 @@ export function GetState():Promise<main.State>;
 
 export function Launch(arg1:string):Promise<void>;
 
-export function ListFabricLoaders(arg1:string):Promise<Array<string>>;
+export function ListLoaderVersions(arg1:string,arg2:string):Promise<Array<string>>;
 
 export function ListVersions():Promise<Array<main.VersionInfo>>;
 
 export function LoginEly(arg1:string,arg2:string,arg3:string):Promise<string>;
+
+export function LoginElyBrowser():Promise<void>;
 
 export function OpenInstanceFolder(arg1:string,arg2:string):Promise<void>;
 
@@ -28,5 +32,7 @@ export function SaveSettings(arg1:number,arg2:boolean,arg3:string):Promise<void>
 export function SelectAccount(arg1:string):Promise<void>;
 
 export function SelectInstance(arg1:string):Promise<void>;
+
+export function SetAppearance(arg1:string,arg2:string):Promise<void>;
 
 export function Stop(arg1:string):Promise<void>;

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/vellnico/rabbit/internal/download"
+	"github.com/vellnico/rabbit/internal/msg"
 	"github.com/vellnico/rabbit/internal/paths"
 )
 
@@ -45,6 +46,11 @@ type Account struct {
 	// ElySkin means an offline nick that also exists on Ely.by, so its skin
 	// can be shown through authlib-injector.
 	ElySkin bool `json:"elySkin,omitempty"`
+
+	// Set for accounts added through the browser (OAuth2).
+	OAuth        bool      `json:"oauth,omitempty"`
+	RefreshToken string    `json:"refreshToken,omitempty"`
+	ExpiresAt    time.Time `json:"expiresAt,omitempty"`
 }
 
 var nickRe = regexp.MustCompile(`^[A-Za-z0-9_]{3,16}$`)
@@ -68,7 +74,7 @@ func randomHex(n int) string {
 func NewOffline(ctx context.Context, name string) (*Account, error) {
 	name = strings.TrimSpace(name)
 	if !nickRe.MatchString(name) {
-		return nil, errors.New("ник: 3–16 символов, латиница, цифры и _")
+		return nil, msg.E("badNick")
 	}
 	acc := &Account{ID: "offline-" + strings.ToLower(name), Kind: Offline, Name: name, UUID: OfflineUUID(name), AccessToken: randomHex(16)}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -132,19 +138,19 @@ func LoginEly(ctx context.Context, login, password, totp string) (*Account, erro
 		"requestUser": true,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Ely.by недоступен: %w", err)
+		return nil, msg.Wrap("elyUnavailable", err)
 	}
 	if code != http.StatusOK {
 		if strings.Contains(strings.ToLower(r.ErrorMessage), "two factor") {
 			return nil, ErrTwoFactor
 		}
 		if r.ErrorMessage != "" {
-			return nil, errors.New(translate(r.ErrorMessage))
+			return nil, translate(r.ErrorMessage)
 		}
-		return nil, fmt.Errorf("Ely.by: код %d", code)
+		return nil, fmt.Errorf("Ely.by: HTTP %d", code)
 	}
 	if r.SelectedProfile == nil {
-		return nil, errors.New("у аккаунта Ely.by нет игрового профиля")
+		return nil, msg.E("elyNoProfile")
 	}
 	return &Account{
 		ID:          "elyby-" + r.SelectedProfile.ID,
@@ -156,14 +162,14 @@ func LoginEly(ctx context.Context, login, password, totp string) (*Account, erro
 	}, nil
 }
 
-func translate(msg string) string {
+func translate(text string) error {
 	switch {
-	case strings.Contains(msg, "Invalid credentials"):
-		return "Неверный логин или пароль"
-	case strings.Contains(msg, "banned"):
-		return "Аккаунт заблокирован"
+	case strings.Contains(text, "Invalid credentials"):
+		return msg.E("badCredentials")
+	case strings.Contains(text, "banned"):
+		return msg.E("banned")
 	}
-	return msg
+	return errors.New(text)
 }
 
 // Refresh makes sure the Ely.by token is valid, refreshing it if needed.
@@ -171,6 +177,9 @@ func translate(msg string) string {
 func Refresh(ctx context.Context, acc *Account) (bool, error) {
 	if acc.Kind != ElyBy {
 		return true, nil
+	}
+	if acc.OAuth {
+		return refreshOAuth(ctx, acc)
 	}
 	_, code, err := post(ctx, "/auth/validate", map[string]string{"accessToken": acc.AccessToken})
 	if err != nil {
@@ -199,7 +208,7 @@ func Refresh(ctx context.Context, acc *Account) (bool, error) {
 
 // Invalidate signs the token out on Ely.by (best effort).
 func Invalidate(ctx context.Context, acc *Account) {
-	if acc.Kind == ElyBy {
+	if acc.Kind == ElyBy && !acc.OAuth {
 		post(ctx, "/auth/invalidate", map[string]string{"accessToken": acc.AccessToken, "clientToken": acc.ClientToken})
 	}
 }

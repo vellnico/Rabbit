@@ -3,7 +3,6 @@ package store
 
 import (
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/vellnico/rabbit/internal/auth"
+	"github.com/vellnico/rabbit/internal/msg"
 	"github.com/vellnico/rabbit/internal/paths"
 )
 
@@ -22,6 +22,8 @@ type Settings struct {
 	SelectedInstance string `json:"selectedInstance"`
 	CloseOnLaunch    bool   `json:"closeOnLaunch"`
 	JVMArgs          string `json:"jvmArgs"`
+	Accent           string `json:"accent"`   // accent color name
+	Language         string `json:"language"` // "" follows the system
 }
 
 func readJSON(path string, v any) error {
@@ -48,7 +50,7 @@ func writeJSON(path string, v any) error {
 }
 
 func LoadSettings() Settings {
-	s := Settings{MemoryMB: 4096}
+	s := Settings{MemoryMB: 4096, Accent: "yellow"}
 	readJSON(paths.ConfigFile("settings.json"), &s)
 	if s.MemoryMB < 512 {
 		s.MemoryMB = 4096
@@ -72,7 +74,7 @@ type Instance struct {
 	ID            string    `json:"id"` // folder name
 	Name          string    `json:"name"`
 	GameVersion   string    `json:"gameVersion"`
-	Loader        string    `json:"loader"` // "vanilla" or "fabric"
+	Loader        string    `json:"loader"` // vanilla, fabric, quilt, forge, neoforge
 	LoaderVersion string    `json:"loaderVersion,omitempty"`
 	Created       time.Time `json:"created"`
 	LastPlayed    time.Time `json:"lastPlayed,omitempty"`
@@ -103,7 +105,7 @@ func LoadInstances() []Instance {
 func GetInstance(id string) (Instance, error) {
 	var in Instance
 	if err := readJSON(instanceFile(id), &in); err != nil {
-		return in, errors.New("сборка не найдена")
+		return in, msg.E("instanceNotFound")
 	}
 	in.ID = id
 	return in, nil
@@ -142,7 +144,7 @@ func CreateInstance(in Instance) (Instance, error) {
 
 func DeleteInstance(id string) error {
 	if id == "" || strings.ContainsAny(id, `/\`) || id == "." || id == ".." {
-		return errors.New("неверная сборка")
+		return msg.E("instanceNotFound")
 	}
 	return os.RemoveAll(paths.Instance(id))
 }

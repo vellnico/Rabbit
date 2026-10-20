@@ -40,12 +40,26 @@ func Install(ctx context.Context, v *Version, report Reporter) error {
 	if lc, ok := v.Logging["client"]; ok && lc.File.URL != "" {
 		files = append(files, download.File{URL: lc.File.URL, Path: LogConfig(lc.File.ID), Hash: lc.File.SHA1, Size: lc.File.Size})
 	}
-	err := download.All(ctx, files, 16, func(d, t int) { report("Библиотеки", d, t) })
+	err := download.All(ctx, files, 16, func(d, t int) { report("libraries", d, t) })
 	if err != nil {
 		return err
 	}
+	// Modded versions get their own copy of the client jar, like the
+	// official launcher does; loaders such as NeoForge rely on its name.
+	if v.ID != v.JarID {
+		src, dst := ClientJar(v.JarID), ClientJar(v.ID)
+		sst, err := os.Stat(src)
+		if err != nil {
+			return err
+		}
+		if dst, err := os.Stat(dst); err != nil || dst.Size() != sst.Size() {
+			if err := copyFile(src, ClientJar(v.ID)); err != nil {
+				return err
+			}
+		}
+	}
 	if err := extractNatives(v); err != nil {
-		return fmt.Errorf("нативы: %w", err)
+		return fmt.Errorf("natives: %w", err)
 	}
 	return installAssets(ctx, v, report)
 }
@@ -177,7 +191,7 @@ func installAssets(ctx context.Context, v *Version, report Reporter) error {
 		}
 		files = append(files, download.File{URL: resourcesURL + o.Hash[:2] + "/" + o.Hash, Path: p, Hash: o.Hash, Size: o.Size})
 	}
-	if err := download.All(ctx, files, 32, func(d, t int) { report("Ресурсы", d, t) }); err != nil {
+	if err := download.All(ctx, files, 32, func(d, t int) { report("assets", d, t) }); err != nil {
 		return err
 	}
 
@@ -226,5 +240,5 @@ func LibraryClasspath(v *Version) []string {
 			cp = append(cp, filepath.Join(paths.Libraries(), filepath.FromSlash(a.Path)))
 		}
 	}
-	return append(cp, ClientJar(v.JarID))
+	return append(cp, ClientJar(v.ID))
 }

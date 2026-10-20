@@ -4,3 +4,4 @@ frontend/dist/*
 !frontend/dist/.gitkeep
 frontend/package.json.md5
 .claude/
+elyby.local
