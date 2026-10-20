@@ -1,19 +1,33 @@
+/*
+ * Rabbit's look borrows Minecraft's own interface: a dark soil backdrop,
+ * stone-grey inventory panels with pixel bevels, black text fields and
+ * dye-coloured accents. Pixel type for names and actions, Segoe UI for
+ * reading.
+ */
+@font-face {
+  font-family: 'Pixelify Sans';
+  src: url('./assets/fonts/PixelifySans.ttf') format('truetype');
+  font-weight: 400 700;
+  font-display: block;
+}
+
 :root {
-  --bg: #0e0e10;
-  --panel: #151518;
-  --raised: #1e1e22;
-  --raised-2: #26262b;
-  --line: #2a2a30;
-  --line-2: #393941;
-  --text: #ededf0;
-  --muted: #8d8d97;
-  --accent: #facc15;
-  --accent-rgb: 250 204 21;
-  --accent-ink: #141208;
-  --danger: #f87171;
-  --radius: 12px;
-  --ease: cubic-bezier(.2, .8, .2, 1);
-  color-scheme: dark;
+  /* palette */
+  --soil: #2e2118;
+  --stone: #c6c6c6;
+  --slot: #8b8b8b;
+  --ink: #3f3f3f;
+  --hi: #ffffff;
+  --lo: #555555;
+  --edge: #000000;
+  --field: #000000;
+  --danger: #a82a1f;
+  --accent: #fed83d;
+  --accent-ink: #1b1b1b;
+
+  --pixel: 'Pixelify Sans', 'Segoe UI', sans-serif;
+  --text: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -21,73 +35,88 @@
 html, body {
   margin: 0;
   height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  user-select: none;
   overflow: hidden;
-  -webkit-font-smoothing: antialiased;
+  background: var(--soil) url('./assets/soil.png') repeat;
+  background-size: 64px 64px;
+  image-rendering: pixelated;
+  color: var(--ink);
+  font: 14px/1.45 var(--text);
+  user-select: none;
+}
+#app { height: 100%; }
+/* Photos and mod icons stay smooth; sprites opt in with .px. */
+img { image-rendering: auto; }
+.px { image-rendering: pixelated; }
+
+/* ---- primitives ---- */
+
+/* Raised stone: a panel or window. */
+.panel {
+  background: var(--stone);
+  border: 2px solid var(--edge);
+  box-shadow: inset 2px 2px 0 var(--hi), inset -2px -2px 0 var(--lo);
 }
 
-#app { height: 100%; }
+/* Sunken slot: icons, lists, wells. */
+.slot {
+  background: var(--slot);
+  box-shadow: inset 2px 2px 0 #373737, inset -2px -2px 0 var(--hi);
+}
 
 button {
-  font: inherit;
-  color: inherit;
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  padding: 7px 13px;
+  font: 16px/1 var(--pixel);
+  color: #fff;
+  text-shadow: 2px 2px 0 #3f3f3f;
+  background: #8b8b8b;
+  border: 2px solid var(--edge);
+  border-radius: 0;
+  padding: 8px 14px;
   cursor: pointer;
-  transition: background .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease),
-    transform .18s var(--ease), box-shadow .25s var(--ease), opacity .18s;
+  box-shadow: inset 2px 2px 0 #b5b5b5, inset -2px -3px 0 #5a5a5a;
 }
-button:hover:not(:disabled) { border-color: var(--line-2); background: var(--raised-2); }
-button:active:not(:disabled) { transform: scale(.97); }
-button:disabled { opacity: .45; cursor: default; }
-button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid rgb(var(--accent-rgb) / .6); outline-offset: 2px; }
+button:hover:not(:disabled) { background: #9a9a9a; outline: 2px solid var(--accent); outline-offset: -4px; }
+button:active:not(:disabled) { box-shadow: inset 2px 2px 0 #5a5a5a, inset -2px -2px 0 #b5b5b5; padding-top: 9px; padding-bottom: 7px; }
+button:disabled { color: #a0a0a0; text-shadow: none; background: #6f6f6f; box-shadow: none; cursor: default; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 button.primary {
   background: var(--accent);
   color: var(--accent-ink);
-  border-color: transparent;
-  font-weight: 600;
-  box-shadow: 0 4px 18px -6px rgb(var(--accent-rgb) / .55);
+  text-shadow: none;
+  box-shadow: inset 2px 2px 0 color-mix(in srgb, var(--accent) 55%, #fff), inset -2px -3px 0 color-mix(in srgb, var(--accent) 60%, #000);
 }
-button.primary:hover:not(:disabled) {
-  background: var(--accent);
-  filter: brightness(1.08);
-  box-shadow: 0 6px 26px -6px rgb(var(--accent-rgb) / .8);
-}
-button.ghost { background: transparent; border-color: transparent; color: var(--muted); }
-button.ghost:hover:not(:disabled) { color: var(--text); background: var(--raised); border-color: transparent; }
+button.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, #fff); outline-color: #fff; }
+
+/* Quiet text button, e.g. "Cancel". */
+button.flat { background: none; border-color: transparent; box-shadow: none; color: var(--ink); text-shadow: none; }
+button.flat:hover:not(:disabled) { background: rgb(0 0 0 / .08); outline: none; }
 button.danger { color: var(--danger); }
 
 input, select {
-  font: inherit;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  padding: 9px 11px;
+  font: 14px var(--text);
+  color: #fff;
+  background: var(--field);
+  border: 2px solid #a0a0a0;
+  border-radius: 0;
+  padding: 7px 9px;
   width: 100%;
   outline: none;
   user-select: text;
-  transition: border-color .18s var(--ease), box-shadow .25s var(--ease);
 }
-input:focus, select:focus { border-color: rgb(var(--accent-rgb) / .8); box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / .14); }
-input[type='checkbox'], input[type='range'] { accent-color: var(--accent); }
+input:focus, select:focus { border-color: #fff; }
+input::placeholder { color: #8f8f8f; }
+select option { background: #1b1b1b; }
+input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
 
-label { display: block; color: var(--muted); font-size: 12px; margin: 14px 0 6px; }
+label { display: block; font-size: 13px; color: var(--ink); margin: 12px 0 5px; }
 
-.error-text { color: var(--danger); font-size: 13px; margin: 12px 0 0; user-select: text; white-space: pre-wrap; }
+.error-text { color: var(--danger); font-size: 13px; margin: 10px 0 0; user-select: text; white-space: pre-wrap; }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--line-2); }
-
-::selection { background: rgb(var(--accent-rgb) / .35); }
+::selection { background: var(--accent); color: var(--accent-ink); }
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-track { background: var(--slot); box-shadow: inset 2px 2px 0 #373737; }
+::-webkit-scrollbar-thumb { background: #c6c6c6; border: 2px solid #000; box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #555; }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }

@@ -45,13 +45,12 @@
   }
 </script>
 
-<Modal title={t('settings')} onclose={cancel} width={460}>
-  <h4>{t('appearance')}</h4>
+<Modal title={t('settings')} onclose={cancel} width={470}>
   <span class="label">{t('accent')}</span>
-  <div class="swatches">
+  <div class="dyes">
     {#each Object.entries(accents) as [name, hex] (name)}
-      <button class="swatch" class:on={accent === name} style="--c:{hex}" onclick={() => setAccent(name)} aria-label={name} title={name}>
-        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      <button class="slot dye" class:on={accent === name} aria-pressed={accent === name} onclick={() => setAccent(name)} aria-label={name} title={name}>
+        <span class="px" style="--c:{hex}"></span>
       </button>
     {/each}
   </div>
@@ -62,9 +61,12 @@
     {#each languages as l (l.code)}<option value={l.code}>{l.name}</option>{/each}
   </select>
 
-  <h4>{t('game')}</h4>
-  <label for="s-mem">{t('memory')}: <b class="mem">{(memory / 1024).toFixed(1)} {t('gb')}</b></label>
-  <input id="s-mem" type="range" min="1024" {max} step="512" bind:value={memory} style="--p:{((memory - 1024) / Math.max(1, max - 1024)) * 100}%" />
+  <!-- A game-style slider: the value is written on the track. -->
+  <label for="s-mem">{t('memory')}</label>
+  <div class="slider">
+    <input id="s-mem" type="range" min="1024" {max} step="512" bind:value={memory} style="--p:{(memory - 1024) / Math.max(1, max - 1024)}" />
+    <span>{(memory / 1024).toFixed(1)} {t('gb')}</span>
+  </div>
 
   <label class="check"><input type="checkbox" bind:checked={closeOnLaunch} /> {t('hideOnLaunch')}</label>
 
@@ -74,38 +76,38 @@
   <p class="hint">{t('dataDir')}: {app.dataDir}</p>
   {#if error}<p class="error-text">{error}</p>{/if}
   <div class="actions">
-    <button class="ghost" onclick={cancel}>{t('cancel')}</button>
+    <button class="flat" onclick={cancel}>{t('cancel')}</button>
     <button class="primary" onclick={save}>{t('save')}</button>
   </div>
 </Modal>
 
 <style>
-  h4 { margin: 18px 0 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-  h4:first-of-type { margin-top: 12px; }
-  .label { display: block; color: var(--muted); font-size: 12px; margin: 12px 0 8px; }
-  .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
-  .swatch {
-    width: 32px; height: 32px; padding: 0; border-radius: 50%;
-    background: var(--c); border: 2px solid transparent;
-    display: grid; place-items: center; color: #141208;
+  .label { display: block; font-size: 13px; margin: 8px 0 5px; }
+  .dyes { display: flex; flex-wrap: wrap; gap: 4px; }
+  .dye { width: 36px; height: 36px; padding: 0; border: none; display: grid; place-items: center; }
+  .dye span {
+    width: 20px; height: 20px; background: var(--c);
+    box-shadow: inset 2px 2px 0 color-mix(in srgb, var(--c) 55%, #fff), inset -2px -2px 0 color-mix(in srgb, var(--c) 60%, #000);
   }
-  .swatch:hover:not(:disabled) { background: var(--c); transform: scale(1.1); border-color: transparent; }
-  .swatch svg { opacity: 0; transform: scale(.4); transition: opacity .2s, transform .3s var(--ease); }
-  .swatch.on { box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px var(--c), 0 0 18px var(--c); }
-  .swatch.on svg { opacity: 1; transform: scale(1); }
-  .mem { color: var(--text); }
-  input[type='range'] {
-    -webkit-appearance: none; appearance: none; padding: 0; height: 6px; border: none; border-radius: 3px;
-    background: linear-gradient(90deg, var(--accent) var(--p), var(--raised-2) var(--p));
+  .dye:hover:not(:disabled) { background: #9f9f9f; outline: none; }
+  .dye.on { outline: 2px solid #fff; outline-offset: -2px; }
+  .dye:active:not(:disabled) { padding: 0; }
+
+  .slider { position: relative; height: 40px; }
+  .slider input {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 100%; margin: 0; padding: 0;
+    background: #1b1b1b; border: 2px solid #000; box-shadow: inset 2px 2px 0 #373737; cursor: pointer;
   }
-  input[type='range']::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
-    background: var(--text); border: 3px solid var(--accent); cursor: pointer;
-    box-shadow: 0 0 10px rgb(var(--accent-rgb) / .6); transition: transform .15s;
+  .slider input::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 36px;
+    background: #8b8b8b; border: 2px solid #000; box-shadow: inset 2px 2px 0 #b5b5b5, inset -2px -2px 0 #5a5a5a;
   }
-  input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.15); }
-  .check { display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 16px; color: var(--text); font-size: 13.5px; }
-  .check input { width: auto; margin: 0; }
-  .hint { color: var(--muted); font-size: 12px; margin: 16px 0 0; user-select: text; word-break: break-all; }
-  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .slider input:hover::-webkit-slider-thumb { outline: 2px solid var(--accent); outline-offset: -4px; }
+  .slider span {
+    position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+    font: 16px var(--pixel); color: #fff; text-shadow: 2px 2px 0 #3f3f3f;
+  }
+  .check { display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 14px; }
+  .hint { font-size: 12px; color: #555; margin: 14px 0 0; user-select: text; word-break: break-all; }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 </style>
