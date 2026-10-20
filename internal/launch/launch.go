@@ -127,7 +127,9 @@ const logTail = 300
 func Start(o Options, onExit func(code int, tail []string)) (*Process, error) {
 	cmd := exec.Command(o.Java, Args(o)...)
 	cmd.Dir = o.GameDir
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	// No console, but never HideWindow: LWJGL 2 (1.12.2 and older) honours
+	// the inherited SW_HIDE and the game window would stay invisible.
+	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000} // CREATE_NO_WINDOW
 	cmd.Env = append(os.Environ(), "JAVA_TOOL_OPTIONS=") // ignore global java agents
 	out, err := cmd.StdoutPipe()
 	if err != nil {
