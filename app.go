@@ -1,0 +1,424 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+	"unsafe"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+
+	"github.com/vellnico/rabbit/internal/auth"
+	"github.com/vellnico/rabbit/internal/java"
+	"github.com/vellnico/rabbit/internal/launch"
+	"github.com/vellnico/rabbit/internal/mojang"
+	"github.com/vellnico/rabbit/internal/paths"
+	"github.com/vellnico/rabbit/internal/store"
+)
+
+// App is bound to the frontend; every exported method is callable from JS.
+type App struct {
+	ctx context.Context
+
+	mu       sync.Mutex
+	settings store.Settings
+	accounts []auth.Account
+	running  map[string]*session
+}
+
+type session struct {
+	cancel context.CancelFunc
+	proc   *launch.Process
+}
+
+func NewApp() *App { return &App{running: map[string]*session{}} }
+
+func (a *App) startup(ctx context.Context) {
+	a.ctx = ctx
+	os.MkdirAll(paths.Root(), 0o755)
+	a.settings = store.LoadSettings()
+	a.accounts = store.LoadAccounts()
+}
+
+// AccountView is an account without secrets.
+type AccountView struct {
+	ID      string    `json:"id"`
+	Kind    auth.Kind `json:"kind"`
+	Name    string    `json:"name"`
+	UUID    string    `json:"uuid"`
+	ElySkin bool      `json:"elySkin"`
+}
+
+type State struct {
+	Settings  store.Settings   `json:"settings"`
+	Accounts  []AccountView    `json:"accounts"`
+	Instances []store.Instance `json:"instances"`
+	Running   []string         `json:"running"`
+	MaxMemory int              `json:"maxMemory"`
+	DataDir   string           `json:"dataDir"`
+}
+
+func (a *App) GetState() State {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	s := State{Settings: a.settings, Instances: store.LoadInstances(), MaxMemory: totalMemoryMB(), DataDir: paths.Root()}
+	for _, acc := range a.accounts {
+		s.Accounts = append(s.Accounts, AccountView{acc.ID, acc.Kind, acc.Name, acc.UUID, acc.ElySkin})
+	}
+	for id := range a.running {
+		s.Running = append(s.Running, id)
+	}
+	return s
+}
+
+// ---- versions & instances ----
+
+type VersionInfo struct {
+	ID          string `json:"id"`
+	Type        string `json:"type"`
+	ReleaseTime string `json:"releaseTime"`
+}
+
+func (a *App) ListVersions() ([]VersionInfo, error) {
+	m, err := mojang.FetchManifest(a.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось получить список версий: %w", err)
+	}
+	out := make([]VersionInfo, 0, len(m.Versions))
+	for _, v := range m.Versions {
+		out = append(out, VersionInfo{v.ID, v.Type, v.ReleaseTime.Format("2006-01-02")})
+	}
+	return out, nil
+}
+
+func (a *App) ListFabricLoaders(game string) ([]string, error) {
+	return mojang.FabricLoaders(a.ctx, game)
+}
+
+func (a *App) CreateInstance(name, game, loader, loaderVersion string) (store.Instance, error) {
+	if game == "" {
+		return store.Instance{}, errors.New("выберите версию")
+	}
+	if loader != "fabric" {
+		loader, loaderVersion = "vanilla", ""
+	} else if loaderVersion == "" {
+		list, err := mojang.FabricLoaders(a.ctx, game)
+		if err != nil || len(list) == 0 {
+			return store.Instance{}, errors.New("Fabric недоступен для этой версии")
+		}
+		loaderVersion = list[0]
+	}
+	in, err := store.CreateInstance(store.Instance{Name: name, GameVersion: game, Loader: loader, LoaderVersion: loaderVersion})
+	if err == nil {
+		a.SelectInstance(in.ID)
+	}
+	return in, err
+}
+
+func (a *App) DeleteInstance(id string) error {
+	a.mu.Lock()
+	_, busy := a.running[id]
+	a.mu.Unlock()
+	if busy {
+		return errors.New("сначала закройте игру")
+	}
+	return store.DeleteInstance(id)
+}
+
+func (a *App) OpenInstanceFolder(id string, sub string) error {
+	dir := paths.Instance(id)
+	if sub != "" && !strings.ContainsAny(sub, `/\.`) {
+		dir += `\` + sub
+		os.MkdirAll(dir, 0o755)
+	}
+	return exec.Command("explorer.exe", dir).Start()
+}
+
+func (a *App) SelectInstance(id string) {
+	a.mu.Lock()
+	a.settings.SelectedInstance = id
+	store.SaveSettings(a.settings)
+	a.mu.Unlock()
+}
+
+func (a *App) SaveSettings(memoryMB int, closeOnLaunch bool, jvmArgs string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if memoryMB < 512 {
+		memoryMB = 512
+	}
+	a.settings.MemoryMB = memoryMB
+	a.settings.CloseOnLaunch = closeOnLaunch
+	a.settings.JVMArgs = strings.TrimSpace(jvmArgs)
+	return store.SaveSettings(a.settings)
+}
+
+// ---- accounts ----
+
+func (a *App) addAccount(acc *auth.Account) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	list := a.accounts[:0]
+	for _, x := range a.accounts {
+		if x.ID != acc.ID {
+			list = append(list, x)
+		}
+	}
+	a.accounts = append(list, *acc)
+	a.settings.SelectedAccount = acc.ID
+	store.SaveAccounts(a.accounts)
+	store.SaveSettings(a.settings)
+}
+
+func (a *App) AddOfflineAccount(nick string) error {
+	acc, err := auth.NewOffline(a.ctx, nick)
+	if err != nil {
+		return err
+	}
+	a.addAccount(acc)
+	return nil
+}
+
+// LoginEly returns "totp" when a two-factor code is required.
+func (a *App) LoginEly(login, password, totp string) (string, error) {
+	acc, err := auth.LoginEly(a.ctx, login, password, totp)
+	if errors.Is(err, auth.ErrTwoFactor) {
+		if totp != "" {
+			return "totp", errors.New("неверный код")
+		}
+		return "totp", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	a.addAccount(acc)
+	return "ok", nil
+}
+
+func (a *App) RemoveAccount(id string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	list := a.accounts[:0]
+	for _, x := range a.accounts {
+		if x.ID == id {
+			go auth.Invalidate(context.Background(), &x)
+			continue
+		}
+		list = append(list, x)
+	}
+	a.accounts = list
+	if a.settings.SelectedAccount == id {
+		a.settings.SelectedAccount = ""
+		if len(list) > 0 {
+			a.settings.SelectedAccount = list[0].ID
+		}
+	}
+	store.SaveAccounts(a.accounts)
+	store.SaveSettings(a.settings)
+}
+
+func (a *App) SelectAccount(id string) {
+	a.mu.Lock()
+	a.settings.SelectedAccount = id
+	store.SaveSettings(a.settings)
+	a.mu.Unlock()
+}
+
+// ---- launching ----
+
+type progressEvent struct {
+	Instance string `json:"instance"`
+	Stage    string `json:"stage"`
+	Done     int    `json:"done"`
+	Total    int    `json:"total"`
+}
+
+type stateEvent struct {
+	Instance string   `json:"instance"`
+	State    string   `json:"state"` // preparing | running | stopped | error
+	Message  string   `json:"message,omitempty"`
+	Log      []string `json:"log,omitempty"`
+}
+
+func (a *App) emitState(e stateEvent) { runtime.EventsEmit(a.ctx, "state", e) }
+
+func (a *App) Launch(id string) error {
+	in, err := store.GetInstance(id)
+	if err != nil {
+		return err
+	}
+	a.mu.Lock()
+	if _, busy := a.running[id]; busy {
+		a.mu.Unlock()
+		return errors.New("уже запущено")
+	}
+	var acc *auth.Account
+	for i := range a.accounts {
+		if a.accounts[i].ID == a.settings.SelectedAccount {
+			acc = &a.accounts[i]
+		}
+	}
+	if acc == nil {
+		a.mu.Unlock()
+		return errors.New("добавьте аккаунт")
+	}
+	account := *acc
+	settings := a.settings
+	ctx, cancel := context.WithCancel(a.ctx)
+	sess := &session{cancel: cancel}
+	a.running[id] = sess
+	a.mu.Unlock()
+
+	go func() {
+		a.emitState(stateEvent{Instance: id, State: "preparing"})
+		opts, err := a.prepare(ctx, in, &account, settings)
+		if err == nil {
+			opts.MemoryMB = settings.MemoryMB
+			opts.ExtraJVM = settings.JVMArgs
+			var proc *launch.Process
+			proc, err = launch.Start(opts, func(code int, tail []string) {
+				a.finish(id, code, tail)
+			})
+			a.mu.Lock()
+			sess.proc = proc
+			a.mu.Unlock()
+		}
+		if err != nil {
+			a.mu.Lock()
+			delete(a.running, id)
+			a.mu.Unlock()
+			msg := err.Error()
+			if ctx.Err() != nil {
+				msg = ""
+			}
+			a.emitState(stateEvent{Instance: id, State: "error", Message: msg})
+			return
+		}
+		in.LastPlayed = time.Now()
+		store.SaveInstance(in)
+		a.emitState(stateEvent{Instance: id, State: "running"})
+		if settings.CloseOnLaunch {
+			runtime.WindowHide(a.ctx)
+		}
+	}()
+	return nil
+}
+
+func (a *App) finish(id string, code int, tail []string) {
+	a.mu.Lock()
+	delete(a.running, id)
+	a.mu.Unlock()
+	runtime.WindowShow(a.ctx)
+	e := stateEvent{Instance: id, State: "stopped"}
+	if code != 0 && code != 1 { // 1 is also used for normal "Stop" from the launcher
+		e.State = "error"
+		e.Message = fmt.Sprintf("Игра завершилась с кодом %d", code)
+		if len(tail) > 40 {
+			tail = tail[len(tail)-40:]
+		}
+		e.Log = tail
+	}
+	a.emitState(e)
+}
+
+func (a *App) prepare(ctx context.Context, in store.Instance, acc *auth.Account, s store.Settings) (launch.Options, error) {
+	report := func(stage string, done, total int) {
+		runtime.EventsEmit(a.ctx, "progress", progressEvent{in.ID, stage, done, total})
+	}
+	report("Аккаунт", 0, 0)
+	if acc.Kind == auth.ElyBy {
+		ok, err := auth.Refresh(ctx, acc)
+		if err != nil {
+			return launch.Options{}, fmt.Errorf("Ely.by недоступен: %w", err)
+		}
+		if !ok {
+			return launch.Options{}, errors.New("сессия Ely.by истекла — войдите заново")
+		}
+		a.mu.Lock()
+		for i := range a.accounts {
+			if a.accounts[i].ID == acc.ID {
+				a.accounts[i] = *acc
+			}
+		}
+		store.SaveAccounts(a.accounts)
+		a.mu.Unlock()
+	}
+
+	report("Версия", 0, 0)
+	if err := mojang.EnsureVanilla(ctx, in.GameVersion); err != nil {
+		return launch.Options{}, err
+	}
+	versionID := in.GameVersion
+	if in.Loader == "fabric" {
+		id, err := mojang.EnsureFabric(ctx, in.GameVersion, in.LoaderVersion)
+		if err != nil {
+			return launch.Options{}, fmt.Errorf("Fabric: %w", err)
+		}
+		versionID = id
+	}
+	v, err := mojang.Resolve(versionID)
+	if err != nil {
+		return launch.Options{}, err
+	}
+	if err := mojang.Install(ctx, v, report); err != nil {
+		return launch.Options{}, err
+	}
+
+	comp := v.JavaComponent()
+	report("Java", 0, 0)
+	javaExe, err := java.Ensure(ctx, comp, func(d, t int) { report("Java", d, t) })
+	if err != nil {
+		return launch.Options{}, fmt.Errorf("Java: %w", err)
+	}
+
+	var injector string
+	if acc.Kind == auth.ElyBy || acc.ElySkin {
+		report("authlib-injector", 0, 0)
+		injector, err = auth.EnsureInjector(ctx)
+		if err != nil {
+			return launch.Options{}, err
+		}
+	}
+	report("Запуск", 0, 0)
+	return launch.Options{Version: v, Java: javaExe, GameDir: paths.Instance(in.ID), Account: *acc, Injector: injector}, nil
+}
+
+func (a *App) Stop(id string) {
+	a.mu.Lock()
+	s := a.running[id]
+	var proc *launch.Process
+	if s != nil {
+		proc = s.proc
+	}
+	a.mu.Unlock()
+	if s == nil {
+		return
+	}
+	s.cancel()
+	proc.Kill()
+}
+
+// ---- misc ----
+
+type memoryStatusEx struct {
+	length, memoryLoad                  uint32
+	totalPhys, availPhys                uint64
+	totalPageFile, availPageFile        uint64
+	totalVirtual, availVirtual, extVirt uint64
+}
+
+func totalMemoryMB() int {
+	var m memoryStatusEx
+	m.length = uint32(unsafe.Sizeof(m))
+	proc := syscall.NewLazyDLL("kernel32.dll").NewProc("GlobalMemoryStatusEx")
+	if r, _, _ := proc.Call(uintptr(unsafe.Pointer(&m))); r == 0 {
+		return 8192
+	}
+	return int(m.totalPhys / 1024 / 1024)
+}

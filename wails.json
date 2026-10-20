@@ -1,0 +1,16 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Rabbit",
+  "outputfilename": "Rabbit",
+  "frontend:install": "pnpm install",
+  "frontend:build": "pnpm build",
+  "author": {
+    "name": "vellnico"
+  },
+  "info": {
+    "companyName": "vellnico",
+    "productName": "Rabbit",
+    "productVersion": "0.1.0",
+    "comments": "Minecraft launcher"
+  }
+}
