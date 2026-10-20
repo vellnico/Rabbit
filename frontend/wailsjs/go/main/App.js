@@ -18,12 +18,36 @@ export function DeleteInstance(arg1) {
   return window['go']['main']['App']['DeleteInstance'](arg1);
 }
 
+export function ExportModpack(arg1) {
+  return window['go']['main']['App']['ExportModpack'](arg1);
+}
+
 export function GetState() {
   return window['go']['main']['App']['GetState']();
 }
 
+export function ImportModpack() {
+  return window['go']['main']['App']['ImportModpack']();
+}
+
+export function InstallContent(arg1, arg2, arg3) {
+  return window['go']['main']['App']['InstallContent'](arg1, arg2, arg3);
+}
+
+export function InstallModpack(arg1) {
+  return window['go']['main']['App']['InstallModpack'](arg1);
+}
+
+export function InstalledProjects(arg1) {
+  return window['go']['main']['App']['InstalledProjects'](arg1);
+}
+
 export function Launch(arg1) {
   return window['go']['main']['App']['Launch'](arg1);
+}
+
+export function ListContent(arg1) {
+  return window['go']['main']['App']['ListContent'](arg1);
 }
 
 export function ListLoaderVersions(arg1, arg2) {
@@ -50,8 +74,16 @@ export function RemoveAccount(arg1) {
   return window['go']['main']['App']['RemoveAccount'](arg1);
 }
 
+export function RemoveContent(arg1, arg2) {
+  return window['go']['main']['App']['RemoveContent'](arg1, arg2);
+}
+
 export function SaveSettings(arg1, arg2, arg3) {
   return window['go']['main']['App']['SaveSettings'](arg1, arg2, arg3);
+}
+
+export function SearchContent(arg1) {
+  return window['go']['main']['App']['SearchContent'](arg1);
 }
 
 export function SelectAccount(arg1) {
@@ -64,6 +96,14 @@ export function SelectInstance(arg1) {
 
 export function SetAppearance(arg1, arg2) {
   return window['go']['main']['App']['SetAppearance'](arg1, arg2);
+}
+
+export function SetContentEnabled(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SetContentEnabled'](arg1, arg2, arg3);
+}
+
+export function ShowInFolder(arg1) {
+  return window['go']['main']['App']['ShowInFolder'](arg1);
 }
 
 export function Stop(arg1) {

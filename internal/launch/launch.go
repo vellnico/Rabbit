@@ -130,7 +130,7 @@ func Start(o Options, onExit func(code int, tail []string)) (*Process, error) {
 	// No console, but never HideWindow: LWJGL 2 (1.12.2 and older) honours
 	// the inherited SW_HIDE and the game window would stay invisible.
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000} // CREATE_NO_WINDOW
-	cmd.Env = append(os.Environ(), "JAVA_TOOL_OPTIONS=") // ignore global java agents
+	cmd.Env = append(os.Environ(), "JAVA_TOOL_OPTIONS=")              // ignore global java agents
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -180,9 +180,15 @@ func Start(o Options, onExit func(code int, tail []string)) (*Process, error) {
 	return p, nil
 }
 
-// Kill stops the game.
+// Kill stops the game together with helper processes mods start
+// (e.g. crash reporters), which would otherwise keep running.
 func (p *Process) Kill() {
-	if p != nil && p.cmd.Process != nil {
+	if p == nil || p.cmd.Process == nil {
+		return
+	}
+	tree := exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(p.cmd.Process.Pid))
+	tree.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000} // CREATE_NO_WINDOW
+	if tree.Run() != nil {
 		p.cmd.Process.Kill()
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -19,7 +20,8 @@ import (
 	"time"
 )
 
-const userAgent = "Rabbit-Launcher/0.1 (+https://github.com/vellnico/rabbit)"
+// UserAgent identifies the launcher to web APIs (Modrinth requires one).
+const UserAgent = "Rabbit-Launcher/0.1 (+https://github.com/vellnico/rabbit)"
 
 var client = &http.Client{
 	Timeout: 5 * time.Minute,
@@ -30,8 +32,8 @@ var client = &http.Client{
 	},
 }
 
-// File is a single file to fetch. Hash is a sha1 (40 hex chars) or sha256
-// (64 hex chars) checksum; empty means "trust whatever the server sends".
+// File is a single file to fetch. Hash is a sha1, sha256 or sha512 hex
+// checksum (told apart by length); empty means "trust whatever the server sends".
 type File struct {
 	URL  string
 	Path string
@@ -48,7 +50,7 @@ func Get(ctx context.Context, url string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", UserAgent)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -87,8 +89,11 @@ func Valid(f File) bool {
 }
 
 func newHash(expected string) hash.Hash {
-	if len(expected) == 64 {
+	switch len(expected) {
+	case 64:
 		return sha256.New()
+	case 128:
+		return sha512.New()
 	}
 	return sha1.New()
 }

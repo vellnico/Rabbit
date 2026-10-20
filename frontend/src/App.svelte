@@ -7,9 +7,11 @@
   import NewInstance from './lib/NewInstance.svelte'
   import Accounts from './lib/Accounts.svelte'
   import Settings from './lib/Settings.svelte'
+  import Library from './lib/Library.svelte'
+  import Installed from './lib/Installed.svelte'
   import { t, tErr, setLanguage, formatDate } from './lib/i18n.svelte.js'
   import { applyAccent, loaders } from './lib/theme.js'
-  import { GetState, Launch, Stop, SelectInstance, DeleteInstance, OpenInstanceFolder } from '../wailsjs/go/main/App.js'
+  import { GetState, Launch, Stop, SelectInstance, DeleteInstance, OpenInstanceFolder, ExportModpack, ShowInFolder } from '../wailsjs/go/main/App.js'
   import { EventsOn } from '../wailsjs/runtime/runtime.js'
 
   let app = $state(null)
@@ -17,6 +19,11 @@
   let progress = $state({}) // instance id -> {stage, done, total}
   let status = $state({}) // instance id -> {state, message, log}
   let confirmDelete = $state(false)
+  let tab = $state('overview') // overview | content | library
+  let contentVersion = $state(0) // bumped when content changes
+  let exporting = $state(false)
+  let exported = $state('') // path of the last export
+  let exportError = $state('')
 
   let selected = $derived(app?.instances?.find((i) => i.id === app.settings.selectedInstance) ?? app?.instances?.[0])
   let account = $derived(app?.accounts?.find((a) => a.id === app.settings.selectedAccount))
@@ -47,6 +54,7 @@
   function pick(id) {
     app.settings.selectedInstance = id
     confirmDelete = false
+    exported = exportError = ''
     SelectInstance(id)
   }
 
@@ -85,6 +93,20 @@
     ['config', 'M4 6h10m4 0h2M4 12h4m4 0h8M4 18h12m4 0h0M14 4v4M8 10v4M16 16v4'],
     ['', 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z'],
   ]
+  async function exportPack() {
+    exporting = true
+    exported = exportError = ''
+    try {
+      exported = await ExportModpack(selected.id)
+    } catch (e) {
+      exportError = tErr(e)
+    } finally {
+      exporting = false
+    }
+  }
+
+  const tabs = ['overview', 'content', 'library']
+  const libraryTypes = (inst) => (inst.loader === 'vanilla' ? ['resourcepack', 'shader'] : ['mod', 'resourcepack', 'shader'])
   const percent = (p) => (p?.total ? Math.round((p.done / p.total) * 100) : null)
   const stageText = (p) => (p?.stage ? t('stage.' + p.stage) : t('preparing'))
 </script>
@@ -159,17 +181,48 @@
               </p>
             </section>
 
-            <span class="section-title">{t('folders')}</span>
-            <section class="folders">
-              {#each folders as [dir, icon], i (dir)}
-                {#if dir !== 'mods' || selected.loader !== 'vanilla'}
-                  <button class="folder" onclick={() => OpenInstanceFolder(selected.id, dir)} in:fly={{ y: 8, duration: 260, delay: 60 + i * 35 }}>
-                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d={icon} fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                    {t('folder.' + (dir || 'root'))}
-                  </button>
-                {/if}
+            <div class="tabs" style="--i:{tabs.indexOf(tab)}">
+              {#each tabs as id (id)}
+                <button class:on={tab === id} onclick={() => (tab = id)}>{t('tab.' + id)}</button>
               {/each}
-            </section>
+              <span class="underline"></span>
+            </div>
+
+            {#if tab === 'overview'}
+              <div class="panel" in:fade={{ duration: 180 }}>
+                <span class="section-title">{t('folders')}</span>
+                <section class="folders">
+                  {#each folders as [dir, icon], i (dir)}
+                    {#if dir !== 'mods' || selected.loader !== 'vanilla'}
+                      <button class="folder" onclick={() => OpenInstanceFolder(selected.id, dir)} in:fly={{ y: 8, duration: 260, delay: 60 + i * 35 }}>
+                        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d={icon} fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                        {t('folder.' + (dir || 'root'))}
+                      </button>
+                    {/if}
+                  {/each}
+                </section>
+                <span class="section-title">Modrinth</span>
+                <div class="export">
+                  <button onclick={exportPack} disabled={exporting}>
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 15V3m0 0-4 4m4-4 4 4M5 13v6h14v-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    {exporting ? t('exporting') : t('exportPack')}
+                  </button>
+                  {#if exported}
+                    <span class="ok-text" in:fade>{t('exported')}</span>
+                    <button class="ghost" onclick={() => ShowInFolder(exported)} in:fade>{t('showInFolder')}</button>
+                  {/if}
+                  {#if exportError}<span class="error-inline">{exportError}</span>{/if}
+                </div>
+              </div>
+            {:else if tab === 'content'}
+              <div class="panel grow" in:fade={{ duration: 180 }}>
+                <Installed instance={selected} version={contentVersion} onlibrary={() => (tab = 'library')} />
+              </div>
+            {:else}
+              <div class="panel grow" in:fade={{ duration: 180 }}>
+                <Library instance={selected} types={libraryTypes(selected)} onchanged={() => contentVersion++} />
+              </div>
+            {/if}
 
             {#if st?.state === 'error' && st.message}
               <section class="error" transition:slide={{ duration: 220 }}>
@@ -305,7 +358,22 @@
     transition: background .6s;
   }
   @keyframes drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(-60px, 40px) scale(1.12); } }
-  .content { position: relative; min-height: 0; display: flex; flex-direction: column; }
+  .content { position: relative; min-height: 0; flex: 1; display: flex; flex-direction: column; }
+  .tabs { position: relative; display: flex; gap: 4px; margin: 18px 0 14px; border-bottom: 1px solid var(--line); }
+  .tabs button { background: transparent; border: none; border-radius: 8px 8px 0 0; color: var(--muted); padding: 8px 14px 10px; width: 120px; }
+  .tabs button:hover:not(:disabled) { background: transparent; color: var(--text); }
+  .tabs button.on { color: var(--text); }
+  .underline {
+    position: absolute; bottom: -1px; left: 0; width: 120px; height: 2px; border-radius: 2px;
+    background: var(--accent); box-shadow: 0 0 10px rgb(var(--accent-rgb) / .7);
+    transform: translateX(calc(var(--i) * 124px)); transition: transform .3s var(--ease);
+  }
+  .panel { min-height: 0; }
+  .panel.grow { flex: 1; display: flex; flex-direction: column; }
+  .export { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .export > button:first-child { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px; }
+  .ok-text { color: var(--accent); font-size: 13px; }
+  .error-inline { color: var(--danger); font-size: 13px; user-select: text; }
 
   .hero { position: relative; }
   .chips { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -315,10 +383,11 @@
   }
   .loader-chip { color: var(--lc); border-color: color-mix(in srgb, var(--lc) 35%, transparent); background: color-mix(in srgb, var(--lc) 9%, transparent); }
   .loader-chip i { width: 6px; height: 6px; border-radius: 50%; background: var(--lc); box-shadow: 0 0 8px var(--lc); }
-  h1 { margin: 12px 0 0; font-size: 34px; font-weight: 750; letter-spacing: -.02em; line-height: 1.1; overflow-wrap: anywhere; }
+  h1 { margin: 10px 0 0; font-size: 30px; font-weight: 750; letter-spacing: -.02em; line-height: 1.1; overflow-wrap: anywhere; }
   .sub { color: var(--muted); margin: 6px 0 0; }
 
-  .section-title { display: block; margin: 30px 0 10px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .section-title { display: block; margin: 4px 0 10px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .folders + .section-title { margin-top: 22px; }
   .folders { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
   .folder {
     display: flex; align-items: center; gap: 10px; padding: 12px 14px; text-align: left;

@@ -503,3 +503,11 @@ func totalMemoryMB() int {
 	}
 	return int(m.totalPhys / 1024 / 1024)
 }
+
+// startExplorer runs explorer.exe with a flag and a quoted path; explorer
+// does not understand Go's argument quoting for "/select,".
+func startExplorer(flag, path string) error {
+	cmd := exec.Command("explorer.exe")
+	cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: `explorer.exe ` + flag + `"` + path + `"`}
+	return cmd.Start()
+}

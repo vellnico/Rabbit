@@ -5,6 +5,8 @@
 - Вход через **Ely.by** в браузере (OAuth2, лаунчер не видит пароль) или просто по нику
 - Скины Ely.by в игре через [authlib-injector](https://github.com/yushijinhun/authlib-injector), в том числе для офлайн-ника, если он зарегистрирован на Ely.by
 - Загрузчики: **Vanilla, Fabric, Quilt, Forge, NeoForge**
+- Библиотека [Modrinth](https://modrinth.com) прямо в лаунчере: моды, ресурспаки, шейдеры и модпаки; обязательные зависимости ставятся сами
+- Импорт и экспорт модпаков в формате `.mrpack`
 - Сборки с отдельными папками `mods`, `resourcepacks`, `shaderpacks`, `saves`, `config`
 - Общие `assets` и `libraries` для всех сборок, файлы не скачиваются повторно
 - Java подбирается и скачивается автоматически под версию игры (рантаймы Mojang)
@@ -53,6 +55,7 @@ internal/auth       офлайн-аккаунты, Ely.by (OAuth и пароль
 internal/download   параллельная загрузка с проверкой sha1/sha256
 internal/java       Java-рантаймы Mojang
 internal/launch     аргументы запуска и процесс игры
+internal/modrinth   поиск и установка контента Modrinth, .mrpack
 internal/mojang     версии, установка, Fabric/Quilt, Forge/NeoForge
 internal/msg        коды ошибок, которые переводит интерфейс
 internal/store      настройки, аккаунты, сборки
