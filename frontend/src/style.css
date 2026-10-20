@@ -1,33 +1,37 @@
 /*
- * Rabbit's look borrows Minecraft's own interface: a dark soil backdrop,
- * stone-grey inventory panels with pixel bevels, black text fields and
- * dye-coloured accents. Pixel type for names and actions, Segoe UI for
- * reading.
+ * Quiet, Windows-like look: system font, light or dark following Windows,
+ * thin dividers instead of cards. The accent colour is reserved for the
+ * main action and progress.
  */
-@font-face {
-  font-family: 'Pixelify Sans';
-  src: url('./assets/fonts/PixelifySans.ttf') format('truetype');
-  font-weight: 400 700;
-  font-display: block;
-}
-
 :root {
-  /* palette */
-  --soil: #2e2118;
-  --stone: #c6c6c6;
-  --slot: #8b8b8b;
-  --ink: #3f3f3f;
-  --hi: #ffffff;
-  --lo: #555555;
-  --edge: #000000;
-  --field: #000000;
-  --danger: #a82a1f;
+  --bg: #f3f3f3;
+  --surface: #ffffff;
+  --border: #e3e3e3;
+  --text: #1b1b1b;
+  --muted: #5f5f5f;
+  --hover: #f2f2f2;
+  --selected: #e9e9e9;
+  --field: #ffffff;
+  --danger: #c42b1c;
   --accent: #fed83d;
   --accent-ink: #1b1b1b;
-
-  --pixel: 'Pixelify Sans', 'Segoe UI', sans-serif;
-  --text: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --radius: 6px;
   color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #202020;
+    --surface: #2b2b2b;
+    --border: #3b3b3b;
+    --text: #f2f2f2;
+    --muted: #a6a6a6;
+    --hover: #333333;
+    --selected: #3a3a3a;
+    --field: #1f1f1f;
+    --danger: #ff6b5e;
+    color-scheme: dark;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -36,86 +40,59 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--soil) url('./assets/soil.png') repeat;
-  background-size: 64px 64px;
-  image-rendering: pixelated;
-  color: var(--ink);
-  font: 14px/1.45 var(--text);
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.45 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   user-select: none;
 }
 #app { height: 100%; }
-/* Photos and mod icons stay smooth; sprites opt in with .px. */
-img { image-rendering: auto; }
-.px { image-rendering: pixelated; }
-
-/* ---- primitives ---- */
-
-/* Raised stone: a panel or window. */
-.panel {
-  background: var(--stone);
-  border: 2px solid var(--edge);
-  box-shadow: inset 2px 2px 0 var(--hi), inset -2px -2px 0 var(--lo);
-}
-
-/* Sunken slot: icons, lists, wells. */
-.slot {
-  background: var(--slot);
-  box-shadow: inset 2px 2px 0 #373737, inset -2px -2px 0 var(--hi);
-}
 
 button {
-  font: 16px/1 var(--pixel);
-  color: #fff;
-  text-shadow: 2px 2px 0 #3f3f3f;
-  background: #8b8b8b;
-  border: 2px solid var(--edge);
-  border-radius: 0;
-  padding: 8px 14px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 12px;
+  min-height: 30px;
   cursor: pointer;
-  box-shadow: inset 2px 2px 0 #b5b5b5, inset -2px -3px 0 #5a5a5a;
 }
-button:hover:not(:disabled) { background: #9a9a9a; outline: 2px solid var(--accent); outline-offset: -4px; }
-button:active:not(:disabled) { box-shadow: inset 2px 2px 0 #5a5a5a, inset -2px -2px 0 #b5b5b5; padding-top: 9px; padding-bottom: 7px; }
-button:disabled { color: #a0a0a0; text-shadow: none; background: #6f6f6f; box-shadow: none; cursor: default; }
-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:hover:not(:disabled) { background: var(--hover); }
+button:active:not(:disabled) { background: var(--selected); }
+button:disabled { opacity: .5; cursor: default; }
+:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
 
-button.primary {
-  background: var(--accent);
-  color: var(--accent-ink);
-  text-shadow: none;
-  box-shadow: inset 2px 2px 0 color-mix(in srgb, var(--accent) 55%, #fff), inset -2px -3px 0 color-mix(in srgb, var(--accent) 60%, #000);
-}
-button.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, #fff); outline-color: #fff; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+button.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, var(--text)); }
+button.primary:active:not(:disabled) { background: color-mix(in srgb, var(--accent) 80%, var(--text)); }
 
-/* Quiet text button, e.g. "Cancel". */
-button.flat { background: none; border-color: transparent; box-shadow: none; color: var(--ink); text-shadow: none; }
-button.flat:hover:not(:disabled) { background: rgb(0 0 0 / .08); outline: none; }
+/* Borderless text button. */
+button.plain { background: none; border-color: transparent; }
+button.plain:hover:not(:disabled) { background: var(--hover); }
 button.danger { color: var(--danger); }
 
 input, select {
-  font: 14px var(--text);
-  color: #fff;
+  font: inherit;
+  color: var(--text);
   background: var(--field);
-  border: 2px solid #a0a0a0;
-  border-radius: 0;
-  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-bottom-color: color-mix(in srgb, var(--border) 50%, var(--muted));
+  border-radius: var(--radius);
+  padding: 5px 9px;
+  min-height: 30px;
   width: 100%;
   outline: none;
   user-select: text;
 }
-input:focus, select:focus { border-color: #fff; }
-input::placeholder { color: #8f8f8f; }
-select option { background: #1b1b1b; }
-input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+input:focus, select:focus { border-bottom: 2px solid var(--text); padding-bottom: 4px; }
+input[type='checkbox'], input[type='range'] { accent-color: var(--accent); width: auto; min-height: 0; }
 
-label { display: block; font-size: 13px; color: var(--ink); margin: 12px 0 5px; }
+label { display: block; color: var(--muted); margin: 12px 0 4px; }
 
-.error-text { color: var(--danger); font-size: 13px; margin: 10px 0 0; user-select: text; white-space: pre-wrap; }
+.error-text { color: var(--danger); margin: 8px 0 0; user-select: text; white-space: pre-wrap; }
 
-::selection { background: var(--accent); color: var(--accent-ink); }
-::-webkit-scrollbar { width: 12px; }
-::-webkit-scrollbar-track { background: var(--slot); box-shadow: inset 2px 2px 0 #373737; }
-::-webkit-scrollbar-thumb { background: #c6c6c6; border: 2px solid #000; box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #555; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted) 45%, transparent); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

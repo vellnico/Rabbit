@@ -82,18 +82,17 @@
   }
 </script>
 
-<Modal title={t('newInstance')} onclose={() => !importing && onclose()} width={mode === 'modpacks' ? 760 : 470}>
-  <div class="modes">
+<Modal title={t('newInstance')} onclose={() => !importing && onclose()} width={mode === 'modpacks' ? 760 : 460}>
+  <div class="seg" role="radiogroup">
     {#each modes as m (m)}
-      <button class:on={mode === m} aria-pressed={mode === m} onclick={() => { mode = m; error = '' }} disabled={!!importing}>{t('new.' + m)}</button>
+      <button class="plain" class:on={mode === m} role="radio" aria-checked={mode === m} onclick={() => { mode = m; error = '' }} disabled={!!importing}>{t('new.' + m)}</button>
     {/each}
   </div>
 
   {#if importing}
     <div class="importing">
-      <b>{t('import.' + importing.stage)}</b>
-      <div class="xp"><div class="fill" class:crawl={!importing.total} style="width:{importing.total ? (importing.done / importing.total) * 100 : 20}%"></div></div>
-      {#if importing.total}<span>{importing.done} / {importing.total}</span>{/if}
+      <span>{t('import.' + importing.stage)}{#if importing.total}, {importing.done} / {importing.total}{/if}</span>
+      <div class="bar" class:indeterminate={!importing.total}><div style="width:{importing.total ? (importing.done / importing.total) * 100 : 30}%"></div></div>
     </div>
   {:else if mode === 'modpacks'}
     <div class="lib">
@@ -101,11 +100,9 @@
     </div>
     {#if error}<p class="error-text">{error}</p>{/if}
   {:else if mode === 'import'}
-    <div class="import">
-      <p>{t('importText')}</p>
-      <button class="primary" onclick={() => runImport(ImportModpack)}>{t('chooseFile')}</button>
-      {#if error}<p class="error-text">{error}</p>{/if}
-    </div>
+    <p class="muted">{t('importText')}</p>
+    <button class="primary" onclick={() => runImport(ImportModpack)}>{t('chooseFile')}</button>
+    {#if error}<p class="error-text">{error}</p>{/if}
   {:else if loadError}
     <p class="error-text">{loadError}</p>
   {:else}
@@ -123,59 +120,44 @@
       <label class="check"><input type="checkbox" bind:checked={snapshots} /> {t('showSnapshots')}</label>
     </div>
 
-    <span class="label">{t('loader')}</span>
-    <div class="loaders">
-      {#each Object.entries(loaders) as [id, l] (id)}
-        <button class:on={loader === id} aria-pressed={loader === id} onclick={() => (loader = id)}>
-          <span class="block px" style="--lc:{l.color}"></span>{l.name}
-        </button>
-      {/each}
-    </div>
-
-    {#if loader !== 'vanilla'}
-      <label for="ni-lv">{t('loaderVersion', { loader: loaders[loader].name })}</label>
-      <select id="ni-lv" bind:value={loaderVersion} disabled={!loaderVersions.length}>
-        {#if loaderLoading}
-          <option value="">{t('loading')}</option>
-        {:else if !loaderVersions.length}
-          <option value="">{t('noLoaderVersions', { version })}</option>
-        {/if}
-        {#each loaderVersions as lv (lv)}<option value={lv}>{lv}</option>{/each}
+    <label for="ni-loader">{t('loader')}</label>
+    <div class="ver">
+      <select id="ni-loader" bind:value={loader}>
+        {#each Object.entries(loaders) as [id, l] (id)}<option value={id}>{l.name}</option>{/each}
       </select>
-    {/if}
+      {#if loader !== 'vanilla'}
+        <select bind:value={loaderVersion} disabled={!loaderVersions.length} aria-label={t('loaderVersion', { loader: loaders[loader].name })}>
+          {#if loaderLoading}
+            <option value="">{t('loading')}</option>
+          {:else if !loaderVersions.length}
+            <option value="">{t('noLoaderVersions', { version })}</option>
+          {/if}
+          {#each loaderVersions as lv (lv)}<option value={lv}>{lv}</option>{/each}
+        </select>
+      {/if}
+    </div>
 
     {#if error}<p class="error-text">{error}</p>{/if}
     <div class="actions">
-      <button class="flat" onclick={onclose}>{t('cancel')}</button>
+      <button onclick={onclose}>{t('cancel')}</button>
       <button class="primary" onclick={create} disabled={busy || !version || (loader !== 'vanilla' && !loaderVersion)}>{t('create')}</button>
     </div>
   {/if}
 </Modal>
 
 <style>
-  .modes { display: flex; gap: 4px; margin: 6px 0 4px; }
-  .modes button { flex: 1; font-size: 15px; }
-  .modes button.on, .loaders button.on { background: #6f6f6f; box-shadow: inset 2px 2px 0 #4a4a4a, inset -2px -2px 0 #9a9a9a; outline: 2px solid var(--accent); outline-offset: -4px; }
-  .ver { display: flex; gap: 12px; align-items: center; }
+  .seg { display: flex; gap: 2px; padding: 2px; margin: 8px 0 6px; border-radius: var(--radius); background: var(--bg); }
+  .seg button { flex: 1; min-height: 28px; color: var(--muted); }
+  .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--border); }
+  .ver { display: flex; gap: 10px; align-items: center; }
   .ver select { flex: 1; }
-  .check { display: flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap; cursor: pointer; }
-  .label { display: block; font-size: 13px; margin: 12px 0 5px; }
-  .loaders { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-  .loaders button { display: grid; justify-items: center; gap: 6px; padding: 8px 2px; font-size: 13px; }
-  .block {
-    width: 16px; height: 16px; background: var(--lc);
-    box-shadow: inset 2px 2px 0 color-mix(in srgb, var(--lc) 60%, #fff), inset -2px -2px 0 color-mix(in srgb, var(--lc) 60%, #000);
-  }
-  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .check { display: flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap; color: var(--text); cursor: pointer; }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+  .muted { color: var(--muted); margin: 12px 0; }
   .lib { height: min(440px, calc(100vh - 170px)); display: flex; flex-direction: column; margin-top: 8px; }
-  .import { display: grid; justify-items: start; gap: 12px; padding: 8px 0 4px; }
-  .import p { margin: 0; max-width: 380px; }
-  .importing { display: grid; gap: 8px; padding: 18px 0 8px; }
-  .importing b { font: 17px var(--pixel); font-weight: 400; }
-  .importing span { font-size: 13px; font-variant-numeric: tabular-nums; }
-  .xp { position: relative; height: 14px; background: #1b1b1b; border: 2px solid #000; overflow: hidden; }
-  .xp::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), #000 calc(10% - 2px) 10%); }
-  .fill { height: 100%; background: var(--accent); transition: width .25s steps(4); }
-  .fill.crawl { animation: crawl 1.4s steps(10) infinite; }
-  @keyframes crawl { from { transform: translateX(-100%); } to { transform: translateX(500%); } }
+  .importing { display: grid; gap: 8px; padding: 20px 0 8px; }
+  .bar { height: 4px; border-radius: 2px; background: var(--selected); overflow: hidden; }
+  .bar div { height: 100%; background: var(--accent); transition: width .2s; }
+  .bar.indeterminate div { animation: slide 1.2s ease-in-out infinite; }
+  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
 </style>

@@ -23,11 +23,11 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 17, G: 17, B: 19, A: 1},
+		BackgroundColour: &options.RGBA{R: 243, G: 243, B: 243, A: 1},
 		OnStartup:        app.startup,
 		Bind:             []interface{}{app},
 		Windows: &windows.Options{
-			Theme: windows.Dark,
+			Theme: windows.SystemDefault,
 		},
 	})
 	if err != nil {

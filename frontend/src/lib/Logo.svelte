@@ -19,6 +19,10 @@
   const pixels = sprite.flatMap((row, y) => [...row].map((c, x) => ({ x, y, c })).filter((p) => fill[p.c]))
 </script>
 
-<svg viewBox="0 0 12 11" width={size} height={(size * 11) / 12} shape-rendering="crispEdges" aria-hidden="true">
+<svg class="logo" viewBox="0 0 12 11" width={size} height={(size * 11) / 12} shape-rendering="crispEdges" aria-hidden="true">
   {#each pixels as p (p.x + ':' + p.y)}<rect x={p.x} y={p.y} width="1" height="1" fill={fill[p.c]} />{/each}
 </svg>
+
+<style>
+  .logo { image-rendering: pixelated; flex: none; }
+</style>

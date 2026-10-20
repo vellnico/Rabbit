@@ -1,8 +1,10 @@
 // Tiny i18n: t('key', {param}) reads the current language reactively.
 
 const ru = {
-  welcome: 'Добро пожаловать в Rabbit',
-  welcomeSub: 'Создайте первую сборку, чтобы начать играть.',
+  welcome: 'Сборок пока нет',
+  welcomeSub: 'Создайте сборку: выберите версию Minecraft и загрузчик.',
+  instances: 'Сборки',
+  openFolder: 'Открыть папку',
   newInstance: 'Новая сборка',
   noInstances: 'Сборок пока нет',
   signIn: 'Войти',
@@ -95,8 +97,10 @@ const ru = {
 }
 
 const en = {
-  welcome: 'Welcome to Rabbit',
-  welcomeSub: 'Create your first instance to start playing.',
+  welcome: 'No instances yet',
+  welcomeSub: 'Create one: pick a Minecraft version and a loader.',
+  instances: 'Instances',
+  openFolder: 'Open folder',
   newInstance: 'New instance',
   noInstances: 'No instances yet',
   signIn: 'Sign in',
@@ -189,8 +193,10 @@ const en = {
 }
 
 const uk = {
-  welcome: 'Ласкаво просимо до Rabbit',
-  welcomeSub: 'Створіть першу збірку, щоб почати грати.',
+  welcome: 'Збірок поки немає',
+  welcomeSub: 'Створіть збірку: оберіть версію Minecraft і завантажувач.',
+  instances: 'Збірки',
+  openFolder: 'Відкрити теку',
   newInstance: 'Нова збірка',
   noInstances: 'Збірок поки немає',
   signIn: 'Увійти',
