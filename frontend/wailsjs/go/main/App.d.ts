@@ -36,6 +36,8 @@ export function LoginEly(arg1:string,arg2:string,arg3:string):Promise<string>;
 
 export function LoginElyBrowser():Promise<void>;
 
+export function LoginMicrosoft():Promise<void>;
+
 export function OpenInstanceFolder(arg1:string,arg2:string):Promise<void>;
 
 export function RemoveAccount(arg1:string):Promise<void>;

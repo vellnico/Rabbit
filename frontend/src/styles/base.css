@@ -1,0 +1,258 @@
+@import "./tokens.css";
+
+/* ---------- Fonts (bundled, the launcher works offline) ---------- */
+@font-face {
+  font-family: "Inter";
+  src: url("../assets/fonts/inter-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: block;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("../assets/fonts/inter-cyrillic.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: block;
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("../assets/fonts/jetbrains-mono-latin.woff2") format("woff2");
+  font-weight: 100 800;
+  font-display: block;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("../assets/fonts/jetbrains-mono-cyrillic.woff2") format("woff2");
+  font-weight: 100 800;
+  font-display: block;
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+/* ---------- Reset ---------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; }
+
+html, body, #app {
+  height: 100%;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--fs-13);
+  line-height: var(--lh-normal);
+  font-feature-settings: "cv11", "ss01", "tnum";
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+  color-scheme: dark;
+}
+
+input, textarea, [contenteditable], .selectable { user-select: text; }
+
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+:focus { outline: none; }
+:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-a24); }
+
+img.pixel, .pixel img { image-rendering: pixelated; }
+
+::selection { background: var(--accent-a24); color: var(--text-primary); }
+
+.mono { font-family: var(--font-mono); font-weight: var(--fw-medium); }
+
+/* ---------- Buttons (§5.1) ----------
+ *   default   Secondary: ordinary actions
+ *   .primary  the one main action of a screen
+ *   .subtle   Ghost: toolbars and lists
+ *   .danger   destructive actions
+ *   .icon     square, icon only; .sm / .lg change the height
+ */
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  height: var(--control-h-md);
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  color: var(--text-primary);
+  background: var(--bg-surface-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  transition: background-color var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast), transform var(--dur-press);
+}
+button:hover:not(:disabled) { background: var(--bg-surface-4); }
+button:active:not(:disabled) { transform: scale(0.98); }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+button.primary { background: var(--accent-400); color: var(--text-on-accent); border-color: transparent; font-weight: var(--fw-semibold); }
+button.primary:hover:not(:disabled) { background: var(--accent-500); }
+
+button.subtle { background: transparent; border-color: transparent; color: var(--text-secondary); }
+button.subtle:hover:not(:disabled) { background: var(--bg-surface-2); color: var(--text-primary); }
+
+button.danger { background: var(--danger-a12); border-color: transparent; color: var(--danger); }
+button.danger:hover:not(:disabled) { background: var(--danger-a20); }
+button.subtle.danger { background: transparent; color: var(--text-secondary); }
+button.subtle.danger:hover:not(:disabled) { background: var(--danger-a12); color: var(--danger); }
+
+button.icon { width: var(--control-h-md); padding: 0; }
+button.sm { height: var(--control-h-sm); padding: 0 var(--sp-3); }
+button.sm.icon { width: var(--control-h-sm); padding: 0; }
+button.lg { height: var(--control-h-lg); padding: 0 var(--sp-5); }
+
+.spin { animation: spin var(--dur-spin) linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Fields (§5.3) ---------- */
+input, select, textarea {
+  font: inherit;
+  font-size: var(--fs-13);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  height: var(--control-h-md);
+  padding: 0 10px;
+  width: 100%;
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+input:hover:not(:disabled), select:hover:not(:disabled) { border-color: var(--border-strong); }
+input:focus, select:focus { border-color: var(--accent-400); box-shadow: 0 0 0 3px var(--accent-a24); }
+input::placeholder { color: var(--text-tertiary); }
+input:disabled, select:disabled { opacity: 0.4; cursor: not-allowed; }
+input[type="search"]::-webkit-search-cancel-button { display: none; }
+
+select {
+  appearance: none;
+  padding-right: var(--sp-8);
+  cursor: pointer;
+  /* Lucide chevron-down in --text-tertiary. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236A6A75' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+select option { background: var(--bg-surface-3); color: var(--text-primary); }
+
+label { display: block; font-size: var(--fs-12); font-weight: var(--fw-medium); color: var(--text-secondary); margin: var(--sp-4) 0 6px; }
+.hint { font-size: var(--fs-11); color: var(--text-tertiary); margin-top: 6px; }
+.error-text { font-size: var(--fs-12); color: var(--danger); margin-top: var(--sp-2); user-select: text; white-space: pre-wrap; }
+
+/* Checkbox (§5.4). */
+input[type="checkbox"] {
+  appearance: none;
+  flex: none;
+  width: 16px; height: 16px; padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-xs);
+  background: transparent;
+  cursor: pointer;
+  display: grid; place-items: center;
+}
+input[type="checkbox"]:checked {
+  background: var(--accent-400) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23141405' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center no-repeat;
+  border-color: transparent;
+}
+
+/* Toggle: <input type="checkbox" class="toggle">. */
+input[type="checkbox"].toggle {
+  width: 32px; height: 18px;
+  border: 0; border-radius: var(--r-full);
+  background: var(--bg-surface-4);
+  position: relative;
+  transition: background-color var(--dur-base);
+}
+input[type="checkbox"].toggle::after {
+  content: ""; position: absolute; left: var(--sp-half); top: var(--sp-half);
+  width: 14px; height: 14px; border-radius: var(--r-full);
+  background: var(--text-primary);
+  transition: transform var(--dur-base) var(--ease-out), background-color var(--dur-base);
+}
+input[type="checkbox"].toggle:checked { background: var(--accent-400); }
+input[type="checkbox"].toggle:checked::after { transform: translateX(14px); background: var(--text-on-accent); }
+
+/* Slider (§5.4). The filled part is drawn from --fill (0–100%). */
+input[type="range"] {
+  appearance: none;
+  height: 14px; padding: 0; border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]:focus { box-shadow: none; }
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: var(--r-full);
+  background: linear-gradient(to right, var(--accent-400) var(--fill, 0%), var(--bg-surface-4) var(--fill, 0%));
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px; height: 14px; margin-top: -5px;
+  border-radius: var(--r-full);
+  background: var(--text-primary);
+  box-shadow: var(--shadow-thumb);
+}
+input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--accent-a24); }
+
+/* Segmented control (§5.4): .seg > button.on */
+.seg { display: flex; gap: var(--sp-half); padding: var(--sp-half); border-radius: var(--r-sm); background: var(--bg-surface-2); }
+.seg button { flex: 1; height: var(--control-h-sm); background: transparent; border-color: transparent; color: var(--text-secondary); }
+.seg button:hover:not(:disabled) { background: var(--bg-surface-3); color: var(--text-primary); }
+.seg button.on, .seg button.on:hover:not(:disabled) { background: var(--bg-surface-4); color: var(--text-primary); }
+
+/* Dialogs sit on --bg-surface-2, so their fields go one step deeper. */
+[role="dialog"] .seg, [role="dialog"] input:not([type="checkbox"]), [role="dialog"] select { background-color: var(--bg-surface-1); }
+
+/* ---------- Badges (§5.7) ---------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 20px; padding: 0 6px;
+  font-size: var(--fs-11); font-weight: var(--fw-medium);
+  border-radius: var(--r-xs);
+  background: var(--bg-surface-3); color: var(--text-secondary);
+  white-space: nowrap;
+}
+.badge .dot { width: 6px; height: 6px; border-radius: var(--r-full); background: var(--dot, var(--text-tertiary)); }
+.badge.accent { background: var(--accent-a14); color: var(--accent-300); }
+.badge.success { background: var(--success-a12); color: var(--success); }
+
+.overline {
+  font-size: var(--fs-11); font-weight: var(--fw-semibold);
+  text-transform: uppercase; letter-spacing: var(--tracking-caps);
+  color: var(--text-tertiary);
+}
+
+/* ---------- Alerts (§5.9) ---------- */
+.alert {
+  display: flex; gap: var(--sp-2); align-items: flex-start;
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 2px solid var(--danger);
+  border-radius: var(--r-sm);
+  background: var(--danger-a12); color: var(--danger);
+  user-select: text;
+}
+.alert > svg { margin-top: var(--sp-half); }
+
+/* ---------- Progress (§5.10) ---------- */
+.bar { height: 4px; border-radius: var(--r-full); background: var(--bg-surface-4); overflow: hidden; }
+.bar > div { height: 100%; border-radius: var(--r-full); background: var(--accent-400); transition: width var(--dur-slow); }
+.bar.indeterminate > div { width: 30%; animation: slide var(--dur-indeterminate) var(--ease-inout) infinite; }
+@keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+
+/* ---------- Empty states (§5.12) ---------- */
+.empty-state { margin: auto; display: grid; justify-items: center; text-align: center; gap: var(--sp-2); max-width: 320px; }
+.empty-state .glyph { width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--r-md); background: var(--bg-surface-2); color: var(--text-tertiary); margin-bottom: var(--sp-2); }
+.empty-state h3 { font-size: var(--fs-14); font-weight: var(--fw-semibold); }
+.empty-state p { color: var(--text-secondary); }
+.empty-state button { margin-top: var(--sp-2); }
+
+/* ---------- Scrollbar (§5.13) ---------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 999px;
+  border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.16); background-clip: padding-box; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}

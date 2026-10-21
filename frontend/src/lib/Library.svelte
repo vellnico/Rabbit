@@ -89,12 +89,12 @@
     {#if types.length > 1}
       <div class="seg" role="radiogroup">
         {#each types as ty (ty)}
-          <button class="subtle" class:on={type === ty} role="radio" aria-checked={type === ty} onclick={() => (type = ty)}>{t('type.' + ty)}</button>
+          <button class:on={type === ty} role="radio" aria-checked={type === ty} onclick={() => (type = ty)}>{t('type.' + ty)}</button>
         {/each}
       </div>
     {/if}
     <div class="q">
-      <Icon name="search" />
+      <Icon name="search" size={14} />
       <input type="search" bind:value={query} placeholder={t('searchPlaceholder')} spellcheck="false" />
     </div>
     <select bind:value={sort} aria-label={t('sort.relevance')}>
@@ -112,13 +112,13 @@
         <div class="body">
           <div class="line"><b>{hit.title}</b><span class="by">{hit.author}</span></div>
           <p class="desc">{hit.description}</p>
-          <span class="by stat"><Icon name="download" size={12} />{formatCount(hit.downloads)}</span>
+          <span class="by stat"><Icon name="download" size={12} /><span class="mono">{formatCount(hit.downloads)}</span></span>
         </div>
         {#if installed.has(hit.project_id)}
-          <span class="done"><Icon name="check" />{t('installed')}</span>
+          <span class="done"><Icon name="circle-check" />{t('installed')}</span>
         {:else}
           <button class="get" onclick={() => install(hit)} disabled={busy[hit.project_id]}>
-            {#if busy[hit.project_id]}<Icon name="loader-circle" spin />{t('installing')}{:else}<Icon name="download" />{t('install')}{/if}
+            {#if busy[hit.project_id]}<Icon name="loader-circle" size={14} spin />{t('installing')}{:else}<Icon name="download" />{t('install')}{/if}
           </button>
         {/if}
       </article>
@@ -134,37 +134,41 @@
   </div>
 
   {#if toast}
-    <div class="toast" role="status"><b>{toast.title}:</b> {toast.text}</div>
+    <div class="toast" role="status"><Icon name="circle-check" /><span><b>{toast.title}</b>{toast.text}</span></div>
   {/if}
 </div>
 
 <style>
-  .lib { position: relative; display: flex; flex-direction: column; min-height: 0; flex: 1; }
-  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .seg { display: flex; gap: 2px; padding: 2px; border-radius: var(--radius); background: var(--bg); }
-  .seg button { height: 28px; padding: 0 10px; color: var(--muted); }
-  .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--border); }
+  .lib { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+  .toolbar { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
+  .seg button { flex: none; padding: 0 var(--sp-3); }
   .q { flex: 1; min-width: 160px; position: relative; display: flex; align-items: center; }
-  .q :global(.icon) { position: absolute; left: 10px; color: var(--muted); pointer-events: none; }
-  .q input { padding-left: 32px; }
+  .q :global(svg) { position: absolute; left: 10px; color: var(--text-tertiary); pointer-events: none; }
+  .q input { padding-left: var(--sp-8); }
   select { width: auto; }
-  .hint { margin: 8px 0 0; color: var(--muted); }
-  .results { margin-top: 10px; overflow: auto; min-height: 0; flex: 1; }
-  .hit { display: flex; gap: 12px; align-items: center; padding: 10px 2px; border-bottom: 1px solid var(--border); }
-  .icon { width: 40px; height: 40px; flex: none; border-radius: var(--radius); object-fit: cover; background: var(--selected); }
+  .hint { margin-top: var(--sp-2); }
+  .results { margin-top: var(--sp-3); overflow: auto; min-height: 0; flex: 1; }
+  .hit { display: flex; gap: var(--sp-3); align-items: center; padding: var(--sp-2); border-bottom: 1px solid var(--border-subtle); transition: background-color var(--dur-fast); }
+  .hit:hover { background: var(--bg-surface-2); }
+  .icon { width: 40px; height: 40px; flex: none; border-radius: var(--r-sm); object-fit: cover; background: var(--bg-surface-3); }
   .body { flex: 1; min-width: 0; }
-  .line { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
-  .line b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .by { font-size: 12px; color: var(--muted); white-space: nowrap; }
-  .desc { margin: 1px 0 2px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-  .get { flex: none; min-width: 118px; }
-  .done { flex: none; min-width: 118px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); }
-  .stat { display: inline-flex; align-items: center; gap: 4px; }
-  .empty { margin: 24px 0; text-align: center; color: var(--muted); }
-  .more { display: block; margin: 12px auto; }
+  .line { display: flex; gap: var(--sp-2); align-items: baseline; min-width: 0; }
+  .line b { font-weight: var(--fw-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .by { font-size: var(--fs-12); color: var(--text-tertiary); white-space: nowrap; }
+  .desc { margin: 1px 0 var(--sp-half); font-size: var(--fs-12); color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .get { flex: none; min-width: 120px; }
+  .done { flex: none; min-width: 120px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); }
+  .stat { display: inline-flex; align-items: center; gap: var(--sp-1); }
+  .empty { margin: var(--sp-6) 0; text-align: center; color: var(--text-secondary); }
+  .more { display: flex; margin: var(--sp-3) auto; }
   .toast {
-    position: absolute; right: 0; bottom: 0; max-width: 70%; padding: 8px 12px;
-    background: var(--text); color: var(--surface); border-radius: var(--radius);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    position: fixed; right: var(--sp-4); bottom: var(--sp-4); z-index: 20; width: var(--toast-w);
+    display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3);
+    background: var(--bg-surface-3); border-radius: var(--r-md); box-shadow: var(--shadow-pop);
+    animation: toast var(--dur-base) var(--ease-out);
   }
+  .toast > :global(svg) { color: var(--success); margin-top: var(--sp-half); }
+  .toast span { min-width: 0; display: grid; color: var(--text-secondary); overflow-wrap: anywhere; }
+  .toast b { color: var(--text-primary); font-weight: var(--fw-semibold); }
+  @keyframes toast { from { opacity: 0; transform: translateY(8px); } }
 </style>

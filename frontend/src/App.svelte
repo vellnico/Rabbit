@@ -1,24 +1,27 @@
 <script>
   import { onMount } from 'svelte'
+  import Titlebar from './lib/Titlebar.svelte'
   import Avatar from './lib/Avatar.svelte'
   import Icon from './lib/Icon.svelte'
-  import Logo from './lib/Logo.svelte'
   import NewInstance from './lib/NewInstance.svelte'
+  import Instances from './lib/Instances.svelte'
   import Accounts from './lib/Accounts.svelte'
   import Settings from './lib/Settings.svelte'
   import Library from './lib/Library.svelte'
   import Installed from './lib/Installed.svelte'
-  import { t, tErr, setLanguage, formatDate } from './lib/i18n.svelte.js'
+  import { t, tErr, setLanguage, formatDate, accountKind } from './lib/i18n.svelte.js'
   import { applyAccent, loaders } from './lib/theme.js'
   import { GetState, Launch, Stop, SelectInstance, DeleteInstance, OpenInstanceFolder, ExportModpack, ShowInFolder } from '../wailsjs/go/main/App.js'
   import { EventsOn } from '../wailsjs/runtime/runtime.js'
 
   let app = $state(null)
-  let modal = $state('') // '', 'new', 'accounts', 'settings'
+  let view = $state('home') // home | instances | library | settings
+  let modal = $state('') // '', 'new', 'accounts'
   let progress = $state({}) // instance id -> {stage, done, total}
   let status = $state({}) // instance id -> {state, message, log}
   let confirmDelete = $state(false)
-  let tab = $state('overview') // overview | content | library
+  let tab = $state('overview') // overview | content
+  let picker = $state(false) // instance menu next to Play
   let contentVersion = $state(0) // bumped when content changes
   let exporting = $state(false)
   let exported = $state('') // path of the last export
@@ -28,7 +31,6 @@
   let account = $derived(app?.accounts?.find((a) => a.id === app.settings.selectedAccount))
   let st = $derived(selected ? status[selected.id] : null)
   let pr = $derived(selected ? progress[selected.id] : null)
-  let busy = $derived(st?.state === 'preparing' || st?.state === 'running')
 
   async function refresh() {
     app = await GetState()
@@ -51,7 +53,7 @@
 
   function pick(id) {
     app.settings.selectedInstance = id
-    confirmDelete = false
+    confirmDelete = picker = false
     exported = exportError = ''
     SelectInstance(id)
   }
@@ -95,7 +97,12 @@
     }
   }
 
-  const tabs = ['overview', 'content', 'library']
+  const nav = [
+    ['home', 'house'],
+    ['instances', 'layout-grid'],
+    ['library', 'compass'],
+  ]
+  const navLabel = (id) => (id === 'library' ? t('tab.library') : t(id))
   // Folder, icon.
   const folders = [
     ['mods', 'blocks'],
@@ -107,196 +114,302 @@
   ]
   const libraryTypes = (inst) => (inst.loader === 'vanilla' ? ['resourcepack', 'shader'] : ['mod', 'resourcepack', 'shader'])
   const percent = (p) => (p?.total ? Math.round((p.done / p.total) * 100) : null)
-  const loaderLabel = (inst) => {
-    const name = (loaders[inst.loader] ?? loaders.vanilla).name
-    return inst.loaderVersion ? `${name} ${inst.loaderVersion}` : name
-  }
+  const loaderOf = (inst) => loaders[inst.loader] ?? loaders.vanilla
+  const loaderLabel = (inst) => (inst.loaderVersion ? `${loaderOf(inst).name} ${inst.loaderVersion}` : loaderOf(inst).name)
 </script>
 
+<svelte:window onclick={() => (picker = false)} oncontextmenu={(e) => !e.target.closest('input, textarea, .selectable') && e.preventDefault()} />
+
 {#if app}
-  <div class="layout">
-    <aside>
-      <div class="brand"><Logo size={20} /><span>Rabbit</span></div>
-
-      <div class="section">
-        <span>{t('instances')}</span>
-        <button class="subtle icon" onclick={() => (modal = 'new')} title={t('newInstance')} aria-label={t('newInstance')}><Icon name="plus" /></button>
-      </div>
-
-      <nav>
-        {#each app.instances ?? [] as inst (inst.id)}
-          <button class="subtle inst" class:sel={selected?.id === inst.id} onclick={() => pick(inst.id)}>
-            <span class="name">{inst.name}</span>
-            <span class="meta">{inst.gameVersion}, {(loaders[inst.loader] ?? loaders.vanilla).name}</span>
-            {#if status[inst.id]?.state === 'running'}<span class="live" title={t('running')}></span>{/if}
-          </button>
-        {/each}
-      </nav>
-
-      <div class="who">
-        <button class="subtle account" onclick={() => (modal = 'accounts')}>
-          <Avatar {account} size={28} />
-          <span>
-            <b>{account?.name ?? t('signIn')}</b>
-            <small>{account ? (account.kind === 'elyby' ? 'Ely.by' : t('offline')) : t('signInSub')}</small>
-          </span>
-        </button>
-        <button class="subtle icon" onclick={() => (modal = 'settings')} aria-label={t('settings')} title={t('settings')}><Icon name="settings" /></button>
-      </div>
-    </aside>
-
-    <main>
-      {#if selected}
-        <header>
-          <div class="title">
-            <h1>{selected.name}</h1>
-            <p>
-              {#if st?.state === 'preparing'}
-                {pr?.stage ? t('stage.' + pr.stage) : t('preparing')}{#if percent(pr) !== null}, {percent(pr)}%{/if}
-              {:else if st?.state === 'running'}
-                {t('running')}
-              {:else}
-                Minecraft {selected.gameVersion}, {loaderLabel(selected)}
-              {/if}
-            </p>
-          </div>
-          {#if busy}
-            <button class="play" onclick={() => Stop(selected.id)}>
-              <Icon name="square" />{st.state === 'running' ? t('closeGame') : t('cancel')}
+  <div class="window">
+    <Titlebar />
+    <div class="shell">
+      <nav class="rail">
+        <div class="group">
+          {#each nav as [id, icon] (id)}
+            <button class="item" class:on={view === id} onclick={() => (view = id)} aria-label={navLabel(id)} aria-current={view === id ? 'page' : undefined}>
+              <Icon name={icon} size={20} />
+              <span class="tip">{navLabel(id)}</span>
             </button>
-          {:else}
-            <button class="primary play" onclick={play}><Icon name="play" />{t('play')}</button>
-          {/if}
-          {#if st?.state === 'preparing'}
-            <div class="progress" class:indeterminate={percent(pr) === null}><div style="width:{percent(pr) ?? 30}%"></div></div>
-          {/if}
-        </header>
-
-        <div class="tabs" role="tablist">
-          {#each tabs as id (id)}
-            <button class="subtle" role="tab" aria-selected={tab === id} class:on={tab === id} onclick={() => (tab = id)}>{t('tab.' + id)}</button>
           {/each}
         </div>
-
-        {#if st?.state === 'error' && st.message}
-          <div class="failure">
-            <b>{tErr(st.message)}</b>
-            {#if st.log?.length}<pre>{st.log.join('\n')}</pre>{/if}
-          </div>
-        {/if}
-
-        <section class="body">
-          {#if tab === 'overview'}
-            <p class="muted">
-              {selected.lastPlayed && formatDate(selected.lastPlayed) ? t('lastPlayed', { date: formatDate(selected.lastPlayed) }) : t('neverPlayed')}
-            </p>
-
-            <h2>{t('openFolder')}</h2>
-            <div class="row">
-              {#each folders as [dir, icon] (dir)}
-                {#if dir !== 'mods' || selected.loader !== 'vanilla'}
-                  <button onclick={() => OpenInstanceFolder(selected.id, dir)}><Icon name={icon} />{t('folder.' + (dir || 'root'))}</button>
-                {/if}
-              {/each}
-            </div>
-
-            <h2>Modrinth</h2>
-            <div class="row">
-              <button onclick={exportPack} disabled={exporting}>
-                <Icon name={exporting ? 'loader-circle' : 'upload'} />{exporting ? t('exporting') : t('exportPack')}
-              </button>
-              {#if exported}
-                <span class="done"><Icon name="check" />{t('exported')}</span>
-                <button class="subtle" onclick={() => ShowInFolder(exported)}><Icon name="folder-open" />{t('showInFolder')}</button>
-              {/if}
-            </div>
-            {#if exportError}<p class="error-text">{exportError}</p>{/if}
-
-            <div class="danger-zone">
-              <button class="danger" onclick={remove} onblur={() => (confirmDelete = false)}>
-                <Icon name="trash-2" />{confirmDelete ? t('confirmDelete') : t('deleteInstance')}
-              </button>
-            </div>
-          {:else if tab === 'content'}
-            <Installed instance={selected} version={contentVersion} onlibrary={() => (tab = 'library')} />
-          {:else}
-            {#key selected.id}
-              <Library instance={selected} types={libraryTypes(selected)} onchanged={() => contentVersion++} />
-            {/key}
-          {/if}
-        </section>
-      {:else}
-        <div class="welcome">
-          <h1>{t('welcome')}</h1>
-          <p class="muted">{t('welcomeSub')}</p>
-          <button class="primary" onclick={() => (modal = 'new')}><Icon name="plus" />{t('newInstance')}</button>
+        <div class="group">
+          <button class="item" class:on={view === 'settings'} onclick={() => (view = 'settings')} aria-label={t('settings')}>
+            <Icon name="settings" size={20} />
+            <span class="tip">{t('settings')}</span>
+          </button>
+          <button class="item" onclick={() => (modal = 'accounts')} aria-label={t('accounts')}>
+            <Avatar {account} size={28} />
+            <span class="tip">{account ? `${account.name} · ${accountKind(account)}` : t('signIn')}</span>
+          </button>
         </div>
-      {/if}
-    </main>
+      </nav>
+
+      <main class="content">
+        {#key view}
+          <div class="screen">
+            {#if view === 'home'}
+              {#if selected}
+                <section class="hero">
+                  <div class="info">
+                    <span class="overline">{loaderLabel(selected)} · {selected.gameVersion}</span>
+                    <h1>{selected.name}</h1>
+                    <p class="meta">
+                      {selected.lastPlayed && formatDate(selected.lastPlayed) ? t('lastPlayed', { date: formatDate(selected.lastPlayed) }) : t('neverPlayed')}
+                    </p>
+                  </div>
+
+                  <div class="launch">
+                    {#if st?.state === 'preparing'}
+                      <div class="row">
+                        <button class="subtle" onclick={() => Stop(selected.id)}>{t('cancel')}</button>
+                        <div class="play loading" role="progressbar" aria-valuenow={percent(pr)} aria-valuemin="0" aria-valuemax="100">
+                          <div class="fill" class:indeterminate={percent(pr) === null} style="width:{percent(pr) ?? 30}%"></div>
+                          {#snippet label()}
+                            {#if pr?.stage === 'launch'}<Icon name="loader-circle" size={14} spin />{t('launching')}
+                            {:else if percent(pr) !== null}{t('downloadPct', { p: percent(pr) })}
+                            {:else}<Icon name="loader-circle" size={14} spin />{t('preparing')}{/if}
+                          {/snippet}
+                          <span>{@render label()}</span>
+                          {#if percent(pr) !== null}
+                            <!-- The same label in dark ink, clipped to the filled part. -->
+                            <span class="ink" aria-hidden="true" style="clip-path: inset(0 {100 - percent(pr)}% 0 0)">{@render label()}</span>
+                          {/if}
+                        </div>
+                      </div>
+                      <span class="stage">{pr?.stage ? t('stage.' + pr.stage) : t('preparing')}{#if pr?.total} · <span class="mono">{pr.done} / {pr.total}</span>{/if}</span>
+                    {:else if st?.state === 'running'}
+                      <div class="row">
+                        <button class="subtle" onclick={() => Stop(selected.id)}><Icon name="square" />{t('stop')}</button>
+                        <button class="play running" disabled><span class="dot"></span>{t('runningShort')}</button>
+                      </div>
+                    {:else}
+                      <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+                      <div class="play-group" onclick={(e) => e.stopPropagation()}>
+                        <button class="primary play" onclick={play}><Icon name="play" size={18} fill />{t('play')}</button>
+                        <button class="primary chevron" onclick={() => (picker = !picker)} aria-label={t('pickInstance')} aria-expanded={picker} title={t('pickInstance')}><Icon name="chevron-down" size={18} /></button>
+                        {#if picker}
+                          <div class="menu" role="menu">
+                            {#each app.instances as inst (inst.id)}
+                              <button class="subtle" role="menuitem" onclick={() => pick(inst.id)}>
+                                <span class="name">{inst.name}</span>
+                                <span class="mono">{inst.gameVersion}</span>
+                                {#if inst.id === selected.id}<Icon name="check" />{/if}
+                              </button>
+                            {/each}
+                          </div>
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+                </section>
+
+                {#if st?.state === 'error' && st.message}
+                  <div class="alert failure">
+                    <Icon name="circle-alert" />
+                    <div>
+                      <b>{tErr(st.message)}</b>
+                      {#if st.log?.length}<pre>{st.log.join('\n')}</pre>{/if}
+                    </div>
+                  </div>
+                {/if}
+
+                <div class="tabs" role="tablist">
+                  {#each ['overview', 'content'] as id (id)}
+                    <button role="tab" aria-selected={tab === id} class:on={tab === id} onclick={() => (tab = id)}>{t('tab.' + id)}</button>
+                  {/each}
+                </div>
+
+                {#if tab === 'overview'}
+                  <h2>{t('openFolder')}</h2>
+                  <div class="buttons">
+                    {#each folders as [dir, icon] (dir)}
+                      {#if dir !== 'mods' || selected.loader !== 'vanilla'}
+                        <button onclick={() => OpenInstanceFolder(selected.id, dir)}><Icon name={icon} />{t('folder.' + (dir || 'root'))}</button>
+                      {/if}
+                    {/each}
+                  </div>
+
+                  <h2>Modrinth</h2>
+                  <div class="buttons">
+                    <button onclick={exportPack} disabled={exporting}>
+                      <Icon name={exporting ? 'loader-circle' : 'upload'} spin={exporting} />{exporting ? t('exporting') : t('exportPack')}
+                    </button>
+                    {#if exported}
+                      <span class="done"><Icon name="circle-check" />{t('exported')}</span>
+                      <button class="subtle" onclick={() => ShowInFolder(exported)}><Icon name="folder-open" />{t('showInFolder')}</button>
+                    {/if}
+                  </div>
+                  {#if exportError}<p class="error-text">{exportError}</p>{/if}
+
+                  <div class="danger-zone">
+                    <div>
+                      <b>{t('dangerZone')}</b>
+                      <p>{t('deleteHint')}</p>
+                    </div>
+                    <button class="danger" onclick={remove} onblur={() => (confirmDelete = false)}>
+                      <Icon name="trash-2" />{confirmDelete ? t('confirmDelete') : t('deleteInstance')}
+                    </button>
+                  </div>
+                {:else}
+                  <Installed instance={selected} version={contentVersion} onlibrary={() => (view = 'library')} />
+                {/if}
+              {:else}
+                <div class="empty-state">
+                  <div class="glyph"><Icon name="layout-grid" size={32} /></div>
+                  <h3>{t('welcome')}</h3>
+                  <p>{t('welcomeSub')}</p>
+                  <button class="primary" onclick={() => (modal = 'new')}><Icon name="plus" />{t('newInstance')}</button>
+                </div>
+              {/if}
+            {:else if view === 'instances'}
+              <Instances {app} {selected} {status} onpick={(id) => { pick(id); view = 'home' }} oncreate={() => (modal = 'new')} />
+            {:else if view === 'library'}
+              <header class="head">
+                <div>
+                  <h1>{t('tab.library')}</h1>
+                  {#if selected}<p>{t('librarySub', { name: selected.name })}</p>{/if}
+                </div>
+              </header>
+              {#if selected}
+                {#key selected.id}
+                  <Library instance={selected} types={libraryTypes(selected)} onchanged={() => contentVersion++} />
+                {/key}
+              {:else}
+                <div class="empty-state">
+                  <div class="glyph"><Icon name="compass" size={32} /></div>
+                  <h3>{t('welcome')}</h3>
+                  <p>{t('noInstanceText')}</p>
+                  <button class="primary" onclick={() => (modal = 'new')}><Icon name="plus" />{t('newInstance')}</button>
+                </div>
+              {/if}
+            {:else}
+              <Settings {app} onchange={refresh} />
+            {/if}
+          </div>
+        {/key}
+      </main>
+    </div>
   </div>
 
   {#if modal === 'new'}
-    <NewInstance onclose={() => (modal = '')} oncreated={async () => { modal = ''; tab = 'overview'; await refresh() }} />
+    <NewInstance onclose={() => (modal = '')} oncreated={async () => { modal = ''; tab = 'overview'; view = 'home'; await refresh() }} />
   {:else if modal === 'accounts'}
     <Accounts {app} onclose={() => (modal = '')} onchange={refresh} />
-  {:else if modal === 'settings'}
-    <Settings {app} onclose={() => (modal = '')} onchange={refresh} />
   {/if}
 {/if}
 
 <style>
-  .layout { display: grid; grid-template-columns: 232px 1fr; height: 100%; }
+  .window { height: 100%; display: flex; flex-direction: column; background: var(--bg-sidebar); }
+  .shell { flex: 1; min-height: 0; display: flex; }
 
-  /* ---- sidebar ---- */
-  aside { display: flex; flex-direction: column; min-height: 0; padding: 12px 8px 8px; }
-  .brand { display: flex; align-items: center; gap: 8px; padding: 0 8px 14px; font-size: 15px; font-weight: 600; }
-  .section { display: flex; align-items: center; justify-content: space-between; padding: 0 0 4px 8px; color: var(--muted); }
-  nav { flex: 1; overflow: auto; display: grid; align-content: start; gap: 2px; min-height: 0; }
-  .inst { position: relative; height: auto; display: grid; justify-content: stretch; justify-items: start; text-align: left; padding: 6px 24px 6px 12px; font-weight: 400; }
-  .inst.sel { background: var(--selected); }
-  .inst.sel::before { content: ''; position: absolute; left: 2px; top: 30%; bottom: 30%; width: 3px; border-radius: 2px; background: var(--text); }
-  .name { max-width: 100%; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .meta { font-size: 12px; color: var(--muted); }
-  .live { position: absolute; right: 10px; top: 50%; width: 7px; height: 7px; margin-top: -3px; border-radius: 50%; background: #2fa84f; }
-  .who { display: flex; align-items: center; gap: 2px; border-top: 1px solid var(--border); padding-top: 8px; }
-  .account { flex: 1; height: auto; justify-content: flex-start; gap: 8px; text-align: left; padding: 4px 6px; min-width: 0; font-weight: 400; }
-  .account span { display: grid; min-width: 0; }
-  .account b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .account small { font-size: 12px; color: var(--muted); }
-
-  /* ---- main: a raised layer, like Windows 11 apps ---- */
-  main {
-    display: flex; flex-direction: column; min-width: 0; min-height: 0;
-    background: var(--surface) var(--surface-shade); border-left: 1px solid var(--border); border-top: 1px solid var(--border);
-    border-top-left-radius: 8px; margin-top: 8px;
+  /* ---- rail (§4.2) ---- */
+  .rail { position: relative; z-index: 2; flex: none; width: var(--sidebar-w); display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: var(--sp-2) 0 var(--sp-3); }
+  .group { display: grid; gap: var(--sp-1); }
+  .item { position: relative; width: var(--rail-item); height: var(--rail-item); padding: 0; background: transparent; border: 0; color: var(--text-tertiary); }
+  .item:hover:not(:disabled) { background: var(--bg-surface-2); color: var(--text-primary); }
+  .item.on, .item.on:hover:not(:disabled) { background: var(--accent-a08); color: var(--accent-400); }
+  .item.on::before {
+    content: ''; position: absolute; top: 50%; width: 3px; height: 16px; margin-top: -8px;
+    left: calc((var(--rail-item) - var(--sidebar-w)) / 2); border-radius: var(--r-full); background: var(--accent-400);
   }
-  header { position: relative; display: flex; align-items: center; gap: 16px; padding: 18px 24px 14px; }
-  .title { flex: 1; min-width: 0; }
-  h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .title p { margin: 2px 0 0; color: var(--muted); }
-  .play { height: 36px; min-width: 132px; padding: 0 18px; font-size: 14px; }
-  .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; }
-  .progress div { height: 100%; background: var(--accent); transition: width .2s; }
-  .progress.indeterminate div { animation: slide 1.2s ease-in-out infinite; }
-  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+  .item :global(.avatar) { border-radius: var(--r-xs); }
+  .tip {
+    position: absolute; left: calc(100% + var(--sp-2)); top: 50%; transform: translateY(-50%);
+    padding: var(--sp-1) var(--sp-2); border-radius: var(--r-xs);
+    background: var(--bg-surface-3); box-shadow: var(--shadow-pop);
+    font-size: var(--fs-12); font-weight: var(--fw-medium); color: var(--text-primary);
+    white-space: nowrap; pointer-events: none; opacity: 0;
+    transition: opacity var(--dur-fast);
+  }
+  .item:hover .tip { opacity: 1; transition-delay: var(--dur-tooltip-delay); }
 
-  .tabs { display: flex; gap: 4px; padding: 0 20px; border-bottom: 1px solid var(--border); }
-  .tabs button { position: relative; border-radius: var(--radius) var(--radius) 0 0; color: var(--muted); padding: 0 10px; font-weight: 500; }
-  .tabs button.on { color: var(--text); font-weight: 600; }
-  .tabs button.on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--text); }
+  /* ---- content sheet (§4.3) ---- */
+  .content {
+    flex: 1; min-width: 0; display: flex;
+    background: var(--bg-surface-1);
+    border-top: 1px solid var(--border-subtle); border-left: 1px solid var(--border-subtle);
+    border-top-left-radius: var(--r-lg);
+  }
+  .screen {
+    flex: 1; min-width: 0; display: flex; flex-direction: column;
+    padding: var(--sp-7) var(--sp-8) var(--sp-6); overflow: auto;
+    animation: enter var(--dur-base) var(--ease-out);
+  }
+  @keyframes enter { from { opacity: 0; transform: translateY(4px); } }
 
-  .failure { margin: 12px 24px 0; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent); border-radius: var(--radius); color: var(--danger); user-select: text; }
-  .failure b { font-weight: 600; white-space: pre-wrap; }
-  .failure pre { color: var(--muted); font: 11px/1.4 Consolas, monospace; overflow: auto; margin: 8px 0 0; max-height: 140px; white-space: pre-wrap; }
+  .head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); min-height: var(--control-h-md); margin-bottom: var(--sp-6); }
+  .head h1 { font-size: var(--fs-24); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tight); line-height: var(--lh-tight); }
+  .head p { margin-top: var(--sp-1); color: var(--text-secondary); font-size: var(--fs-12); }
 
-  .body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 16px 24px 20px; overflow: auto; }
-  .muted { color: var(--muted); margin: 0; }
-  h2 { margin: 20px 0 8px; font-size: 13px; font-weight: 600; }
-  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-  .done { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); padding: 0 6px; }
-  .danger-zone { margin-top: auto; padding-top: 24px; }
+  /* ---- hero (§6) ---- */
+  .hero {
+    position: relative; flex: none; display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-6);
+    min-height: clamp(220px, 46vh, 400px); padding: var(--sp-6);
+    border-radius: var(--r-lg); background: var(--bg-surface-2); border: 1px solid var(--border-subtle);
+  }
+  .hero::before {
+    /* Faint pixel pattern, the only decoration of the screen. */
+    content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0.035;
+    background: repeating-conic-gradient(var(--text-primary) 0 25%, transparent 0 50%) 0 0 / 16px 16px;
+    mask-image: linear-gradient(180deg, var(--text-primary), transparent 85%);
+  }
+  .info { position: relative; min-width: 0; display: grid; gap: var(--sp-1); }
+  .info h1 { font-size: var(--fs-32); font-weight: var(--fw-bold); letter-spacing: var(--tracking-tight); line-height: var(--lh-tight); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .meta { font-size: var(--fs-12); color: var(--text-secondary); }
 
-  .welcome { margin: auto; display: grid; justify-items: center; gap: 8px; text-align: center; }
-  .welcome h1 { font-size: 18px; }
-  .welcome button { margin-top: 8px; }
+  /* ---- Play (§5.2) ---- */
+  .launch { position: relative; flex: none; display: grid; justify-items: end; gap: var(--sp-2); }
+  .launch .row { display: flex; align-items: center; gap: var(--sp-2); }
+  .play { height: var(--play-h); min-width: var(--play-w); padding: 0 var(--sp-6); font-size: var(--fs-15); font-weight: var(--fw-bold); letter-spacing: var(--tracking-play); }
+  .play-group { position: relative; display: flex; border-radius: var(--r-sm); box-shadow: var(--accent-glow); transition: box-shadow var(--dur-fast); }
+  .play-group:hover { box-shadow: var(--accent-glow-hover); }
+  .play-group .play { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+  .play-group button.primary:hover:not(:disabled) { background: var(--accent-300); }
+  .play-group button.primary:active:not(:disabled) { background: var(--accent-500); }
+  .chevron { width: var(--play-h); height: var(--play-h); padding: 0; border-radius: 0 var(--r-sm) var(--r-sm) 0; border-left: 1px solid var(--group-divider); }
+  .menu {
+    position: absolute; right: 0; bottom: calc(100% + var(--sp-2)); z-index: 5;
+    width: 280px; max-height: 320px; overflow: auto; padding: var(--sp-1);
+    background: var(--bg-surface-3); border-radius: var(--r-md); box-shadow: var(--shadow-pop);
+    animation: enter var(--dur-base) var(--ease-out);
+  }
+  .menu button { width: 100%; height: 30px; justify-content: flex-start; padding: 0 var(--sp-2); border-radius: var(--r-xs); color: var(--text-primary); font-weight: var(--fw-regular); }
+  .menu button:hover:not(:disabled) { background: var(--bg-surface-4); }
+  .menu .name { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; }
+  .menu .mono { font-size: var(--fs-12); color: var(--text-secondary); }
+  .menu :global(svg) { color: var(--accent-400); }
+
+  .play.loading { position: relative; display: grid; place-items: center; overflow: hidden; border-radius: var(--r-sm); background: var(--bg-surface-3); }
+  .play.loading .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent-400); transition: width var(--dur-slow); }
+  .play.loading .fill.indeterminate { animation: slide var(--dur-indeterminate) var(--ease-inout) infinite; }
+  .play.loading span { grid-area: 1 / 1; position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); color: var(--text-primary); }
+  .play.loading .ink { width: 100%; height: 100%; color: var(--text-on-accent); transition: clip-path var(--dur-slow); }
+  .play.loading .fill { grid-area: 1 / 1; }
+  .stage { font-size: var(--fs-11); color: var(--text-tertiary); }
+  .play.running:disabled { opacity: 1; cursor: default; }
+  .dot { width: 6px; height: 6px; border-radius: var(--r-full); background: var(--success); }
+
+  .failure { margin-top: var(--sp-4); }
+  .failure b { font-weight: var(--fw-semibold); white-space: pre-wrap; }
+  .failure pre { margin-top: var(--sp-2); max-height: 140px; overflow: auto; white-space: pre-wrap; font: var(--fs-11)/var(--lh-log) var(--font-mono); color: var(--text-secondary); }
+
+  /* ---- tabs ---- */
+  .tabs { display: flex; gap: var(--sp-4); margin: var(--sp-6) 0 var(--sp-1); border-bottom: 1px solid var(--border-subtle); }
+  .tabs button { position: relative; height: var(--control-h-md); padding: 0; background: transparent; border: 0; border-radius: 0; color: var(--text-secondary); }
+  .tabs button:hover:not(:disabled) { background: transparent; color: var(--text-primary); }
+  .tabs button:active:not(:disabled) { transform: none; }
+  .tabs button.on { color: var(--text-primary); font-weight: var(--fw-semibold); }
+  .tabs button.on::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: var(--r-full); background: var(--accent-400); }
+
+  h2 { margin: var(--sp-6) 0 var(--sp-3); font-size: var(--fs-14); font-weight: var(--fw-semibold); }
+  .buttons { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+  .done { display: inline-flex; align-items: center; gap: 6px; padding: 0 var(--sp-2); color: var(--success); }
+
+  .danger-zone {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4);
+    margin-top: var(--sp-8); padding: var(--sp-4); border: 1px solid var(--danger-a12); border-radius: var(--r-md);
+  }
+  .danger-zone b { font-weight: var(--fw-semibold); }
+  .danger-zone p { font-size: var(--fs-12); color: var(--text-secondary); }
 </style>

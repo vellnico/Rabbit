@@ -15,7 +15,7 @@ import (
 )
 
 // Credentials of the Ely.by OAuth application. They are injected at build
-// time, see README ("Ely.by OAuth"):
+// time, see README ("Ely.by"):
 //
 //	-ldflags "-X github.com/vellnico/rabbit/internal/auth.ElyClientID=... -X ...ElyClientSecret=..."
 var (

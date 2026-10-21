@@ -1,7 +1,13 @@
-build/bin
-node_modules
-frontend/dist/*
-!frontend/dist/.gitkeep
+# Build output
+build/bin/
+frontend/dist/
+frontend/node_modules/
 frontend/package.json.md5
+
+# Local sign-in keys (see build.ps1)
+*.local
+
+# Local notes for AI assistants, not part of the project
 .claude/
-elyby.local
+CLAUDE.md
+DESIGN.md

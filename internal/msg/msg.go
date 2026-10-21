@@ -4,7 +4,10 @@
 // dictionary; any other text is shown as is.
 package msg
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type coded struct {
 	key    string
@@ -31,6 +34,12 @@ func E(key string, detail ...any) error {
 		c.detail = fmt.Sprint(detail...)
 	}
 	return c
+}
+
+// IsCoded reports whether err already is a translatable error.
+func IsCoded(err error) bool {
+	var c *coded
+	return errors.As(err, &c)
 }
 
 // Wrap returns a translatable error whose detail is err's text.

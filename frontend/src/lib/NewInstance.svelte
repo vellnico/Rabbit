@@ -83,10 +83,10 @@
   }
 </script>
 
-<Modal title={t('newInstance')} onclose={() => !importing && onclose()} width={mode === 'modpacks' ? 760 : 460}>
+<Modal title={t('newInstance')} onclose={() => !importing && onclose()} width={mode === 'modpacks' ? 'lg' : 'md'}>
   <div class="seg" role="radiogroup">
     {#each modes as m (m)}
-      <button class="subtle" class:on={mode === m} role="radio" aria-checked={mode === m} onclick={() => { mode = m; error = '' }} disabled={!!importing}>{t('new.' + m)}</button>
+      <button class:on={mode === m} role="radio" aria-checked={mode === m} onclick={() => { mode = m; error = '' }} disabled={!!importing}>{t('new.' + m)}</button>
     {/each}
   </div>
 
@@ -147,18 +147,12 @@
 </Modal>
 
 <style>
-  .seg { display: flex; gap: 2px; padding: 2px; margin: 8px 0 6px; border-radius: var(--radius); background: var(--bg); }
-  .seg button { flex: 1; height: 28px; color: var(--muted); }
-  .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--border); }
-  .ver { display: flex; gap: 10px; align-items: center; }
+  .seg { margin-bottom: var(--sp-1); }
+  .ver { display: flex; gap: var(--sp-3); align-items: center; }
   .ver select { flex: 1; }
-  .check { display: flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap; color: var(--text); cursor: pointer; }
-  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
-  .muted { color: var(--muted); margin: 12px 0; }
-  .lib { height: min(440px, calc(100vh - 170px)); display: flex; flex-direction: column; margin-top: 8px; }
-  .importing { display: grid; gap: 8px; padding: 20px 0 8px; }
-  .bar { height: 4px; border-radius: 2px; background: var(--selected); overflow: hidden; }
-  .bar div { height: 100%; background: var(--accent); transition: width .2s; }
-  .bar.indeterminate div { animation: slide 1.2s ease-in-out infinite; }
-  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+  .check { display: flex; align-items: center; gap: var(--sp-2); margin: 0; white-space: nowrap; font-size: var(--fs-13); font-weight: var(--fw-regular); color: var(--text-primary); cursor: pointer; }
+  .actions { display: flex; justify-content: flex-end; gap: var(--sp-2); margin-top: var(--sp-6); }
+  .muted { color: var(--text-secondary); margin: var(--sp-4) 0; }
+  .lib { height: min(440px, calc(100vh - 170px)); display: flex; flex-direction: column; margin-top: var(--sp-3); }
+  .importing { display: grid; gap: var(--sp-2); padding: var(--sp-5) 0 var(--sp-2); color: var(--text-secondary); }
 </style>

@@ -6,6 +6,7 @@ export namespace main {
 	    name: string;
 	    uuid: string;
 	    elySkin: boolean;
+	    skin?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new AccountView(source);
@@ -18,6 +19,7 @@ export namespace main {
 	        this.name = source["name"];
 	        this.uuid = source["uuid"];
 	        this.elySkin = source["elySkin"];
+	        this.skin = source["skin"];
 	    }
 	}
 	export class State {
@@ -28,6 +30,7 @@ export namespace main {
 	    maxMemory: number;
 	    dataDir: string;
 	    elyBrowser: boolean;
+	    microsoft: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new State(source);
@@ -42,6 +45,7 @@ export namespace main {
 	        this.maxMemory = source["maxMemory"];
 	        this.dataDir = source["dataDir"];
 	        this.elyBrowser = source["elyBrowser"];
+	        this.microsoft = source["microsoft"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
