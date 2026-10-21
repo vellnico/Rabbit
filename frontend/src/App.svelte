@@ -384,8 +384,8 @@
   .play.loading .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent-400); transition: width var(--dur-slow); }
   .play.loading .fill.indeterminate { animation: slide var(--dur-indeterminate) var(--ease-inout) infinite; }
   .play.loading span { grid-area: 1 / 1; position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); color: var(--text-primary); }
-  .play.loading .ink { width: 100%; height: 100%; color: var(--text-on-accent); transition: clip-path var(--dur-slow); }
-  .play.loading .fill { grid-area: 1 / 1; }
+  /* Fill and ink span the whole padding box, so the clip lines up with the fill edge. */
+  .play.loading .ink { grid-area: auto; position: absolute; inset: 0; color: var(--text-on-accent); transition: clip-path var(--dur-slow); }
   .stage { font-size: var(--fs-11); color: var(--text-tertiary); }
   .play.running:disabled { opacity: 1; cursor: default; }
   .dot { width: 6px; height: 6px; border-radius: var(--r-full); background: var(--success); }
