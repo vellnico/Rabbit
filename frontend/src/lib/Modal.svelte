@@ -1,5 +1,6 @@
 <script>
   import { t } from './i18n.svelte.js'
+  import Icon from './Icon.svelte'
 
   let { title, onclose, children, width = 440 } = $props()
 
@@ -15,9 +16,7 @@
   <div class="dialog" role="dialog" aria-label={title} style="width:min({width}px, calc(100vw - 32px))">
     <header>
       <h2>{title}</h2>
-      <button class="plain close" onclick={onclose} aria-label={t('close')} title={t('close')}>
-        <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="1.4" /></svg>
-      </button>
+      <button class="subtle icon" onclick={onclose} aria-label={t('close')} title={t('close')}><Icon name="x" /></button>
     </header>
     {@render children()}
   </div>
@@ -30,7 +29,6 @@
     background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
     padding: 16px 20px 20px; box-shadow: 0 16px 40px rgb(0 0 0 / .25);
   }
-  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin: -4px -8px 4px 0; }
   h2 { margin: 0; font-size: 16px; font-weight: 600; }
-  .close { min-height: 28px; width: 28px; padding: 0; display: grid; place-items: center; color: var(--muted); }
 </style>

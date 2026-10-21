@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import Modal from './Modal.svelte'
   import Library from './Library.svelte'
+  import Icon from './Icon.svelte'
   import { t, tErr } from './i18n.svelte.js'
   import { loaders } from './theme.js'
   import { ListVersions, ListLoaderVersions, CreateInstance, ImportModpack, InstallModpack } from '../../wailsjs/go/main/App.js'
@@ -85,7 +86,7 @@
 <Modal title={t('newInstance')} onclose={() => !importing && onclose()} width={mode === 'modpacks' ? 760 : 460}>
   <div class="seg" role="radiogroup">
     {#each modes as m (m)}
-      <button class="plain" class:on={mode === m} role="radio" aria-checked={mode === m} onclick={() => { mode = m; error = '' }} disabled={!!importing}>{t('new.' + m)}</button>
+      <button class="subtle" class:on={mode === m} role="radio" aria-checked={mode === m} onclick={() => { mode = m; error = '' }} disabled={!!importing}>{t('new.' + m)}</button>
     {/each}
   </div>
 
@@ -101,7 +102,7 @@
     {#if error}<p class="error-text">{error}</p>{/if}
   {:else if mode === 'import'}
     <p class="muted">{t('importText')}</p>
-    <button class="primary" onclick={() => runImport(ImportModpack)}>{t('chooseFile')}</button>
+    <button class="primary" onclick={() => runImport(ImportModpack)}><Icon name="file-input" />{t('chooseFile')}</button>
     {#if error}<p class="error-text">{error}</p>{/if}
   {:else if loadError}
     <p class="error-text">{loadError}</p>
@@ -140,14 +141,14 @@
     {#if error}<p class="error-text">{error}</p>{/if}
     <div class="actions">
       <button onclick={onclose}>{t('cancel')}</button>
-      <button class="primary" onclick={create} disabled={busy || !version || (loader !== 'vanilla' && !loaderVersion)}>{t('create')}</button>
+      <button class="primary" onclick={create} disabled={busy || !version || (loader !== 'vanilla' && !loaderVersion)}><Icon name="plus" />{t('create')}</button>
     </div>
   {/if}
 </Modal>
 
 <style>
   .seg { display: flex; gap: 2px; padding: 2px; margin: 8px 0 6px; border-radius: var(--radius); background: var(--bg); }
-  .seg button { flex: 1; min-height: 28px; color: var(--muted); }
+  .seg button { flex: 1; height: 28px; color: var(--muted); }
   .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--border); }
   .ver { display: flex; gap: 10px; align-items: center; }
   .ver select { flex: 1; }

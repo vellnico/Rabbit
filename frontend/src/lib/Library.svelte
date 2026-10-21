@@ -3,6 +3,7 @@
   // in modpack mode (`oninstall` given) it hands the picked project back.
   import { untrack } from 'svelte'
   import { t, tErr, formatCount } from './i18n.svelte.js'
+  import Icon from './Icon.svelte'
   import { SearchContent, InstallContent, InstalledProjects } from '../../wailsjs/go/main/App.js'
 
   let { instance = null, types, oninstall = null, onchanged = () => {} } = $props()
@@ -88,11 +89,14 @@
     {#if types.length > 1}
       <div class="seg" role="radiogroup">
         {#each types as ty (ty)}
-          <button class="plain" class:on={type === ty} role="radio" aria-checked={type === ty} onclick={() => (type = ty)}>{t('type.' + ty)}</button>
+          <button class="subtle" class:on={type === ty} role="radio" aria-checked={type === ty} onclick={() => (type = ty)}>{t('type.' + ty)}</button>
         {/each}
       </div>
     {/if}
-    <input class="q" type="search" bind:value={query} placeholder={t('searchPlaceholder')} spellcheck="false" />
+    <div class="q">
+      <Icon name="search" />
+      <input type="search" bind:value={query} placeholder={t('searchPlaceholder')} spellcheck="false" />
+    </div>
     <select bind:value={sort} aria-label={t('sort.relevance')}>
       {#each sorts as s (s)}<option value={s}>{t('sort.' + s)}</option>{/each}
     </select>
@@ -108,13 +112,13 @@
         <div class="body">
           <div class="line"><b>{hit.title}</b><span class="by">{hit.author}</span></div>
           <p class="desc">{hit.description}</p>
-          <span class="by">{formatCount(hit.downloads)} ↓</span>
+          <span class="by stat"><Icon name="download" size={12} />{formatCount(hit.downloads)}</span>
         </div>
         {#if installed.has(hit.project_id)}
-          <span class="done">{t('installed')}</span>
+          <span class="done"><Icon name="check" />{t('installed')}</span>
         {:else}
           <button class="get" onclick={() => install(hit)} disabled={busy[hit.project_id]}>
-            {busy[hit.project_id] ? t('installing') : t('install')}
+            {#if busy[hit.project_id]}<Icon name="loader-circle" spin />{t('installing')}{:else}<Icon name="download" />{t('install')}{/if}
           </button>
         {/if}
       </article>
@@ -138,9 +142,11 @@
   .lib { position: relative; display: flex; flex-direction: column; min-height: 0; flex: 1; }
   .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .seg { display: flex; gap: 2px; padding: 2px; border-radius: var(--radius); background: var(--bg); }
-  .seg button { min-height: 26px; padding: 3px 10px; color: var(--muted); }
+  .seg button { height: 28px; padding: 0 10px; color: var(--muted); }
   .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--border); }
-  .q { flex: 1; min-width: 160px; }
+  .q { flex: 1; min-width: 160px; position: relative; display: flex; align-items: center; }
+  .q :global(.icon) { position: absolute; left: 10px; color: var(--muted); pointer-events: none; }
+  .q input { padding-left: 32px; }
   select { width: auto; }
   .hint { margin: 8px 0 0; color: var(--muted); }
   .results { margin-top: 10px; overflow: auto; min-height: 0; flex: 1; }
@@ -151,8 +157,9 @@
   .line b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .by { font-size: 12px; color: var(--muted); white-space: nowrap; }
   .desc { margin: 1px 0 2px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-  .get { flex: none; min-width: 104px; }
-  .done { flex: none; min-width: 104px; text-align: center; color: var(--muted); }
+  .get { flex: none; min-width: 118px; }
+  .done { flex: none; min-width: 118px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); }
+  .stat { display: inline-flex; align-items: center; gap: 4px; }
   .empty { margin: 24px 0; text-align: center; color: var(--muted); }
   .more { display: block; margin: 12px auto; }
   .toast {

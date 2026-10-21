@@ -2,6 +2,7 @@
   import { untrack } from 'svelte'
   import Modal from './Modal.svelte'
   import Avatar from './Avatar.svelte'
+  import Icon from './Icon.svelte'
   import { t, tErr } from './i18n.svelte.js'
   import { AddOfflineAccount, LoginEly, LoginElyBrowser, CancelLogin, RemoveAccount, SelectAccount } from '../../wailsjs/go/main/App.js'
   import { BrowserOpenURL } from '../../wailsjs/runtime/runtime.js'
@@ -80,7 +81,7 @@
 <Modal title={t('accounts')} onclose={close}>
   <div class="seg" role="radiogroup">
     {#each tabs as [id, label] (id)}
-      <button class="plain" class:on={tab === id} role="radio" aria-checked={tab === id} onclick={() => { tab = id; error = '' }} disabled={id === 'list' && !app.accounts?.length}>{label}</button>
+      <button class="subtle" class:on={tab === id} role="radio" aria-checked={tab === id} onclick={() => { tab = id; error = '' }} disabled={id === 'list' && !app.accounts?.length}>{label}</button>
     {/each}
   </div>
 
@@ -88,19 +89,17 @@
     <div class="list">
       {#each app.accounts ?? [] as a (a.id)}
         <div class="acc">
-          <button class="plain pick" class:sel={a.id === app.settings.selectedAccount} onclick={() => select(a.id)}>
+          <button class="subtle pick" class:sel={a.id === app.settings.selectedAccount} onclick={() => select(a.id)}>
             <Avatar account={a} size={32} />
             <span>
               <b>{a.name}</b>
               <small>{a.kind === 'elyby' ? 'Ely.by' : a.elySkin ? t('offlineSkin') : t('offline')}</small>
             </span>
             {#if a.id === app.settings.selectedAccount}
-              <svg class="tick" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+              <Icon name="check" />
             {/if}
           </button>
-          <button class="plain del" onclick={() => remove(a.id)} aria-label={t('remove')} title={t('remove')}>
-            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
-          </button>
+          <button class="subtle icon danger" onclick={() => remove(a.id)} aria-label={t('remove')} title={t('remove')}><Icon name="trash-2" /></button>
         </div>
       {/each}
     </div>
@@ -111,8 +110,8 @@
       <div class="actions"><button onclick={() => CancelLogin()}>{t('cancel')}</button></div>
     {:else}
       <div class="actions">
-        <button class="plain" onclick={() => BrowserOpenURL('https://account.ely.by/register')}>{t('register')}</button>
-        <button class="primary" onclick={browserLogin} disabled={busy}>{t('elyBrowserButton')}</button>
+        <button class="subtle" onclick={() => BrowserOpenURL('https://account.ely.by/register')}><Icon name="external-link" />{t('register')}</button>
+        <button class="primary" onclick={browserLogin} disabled={busy}><Icon name="log-in" />{t('elyBrowserButton')}</button>
       </div>
     {/if}
   {:else if tab === 'ely'}
@@ -128,8 +127,8 @@
         <input id="ely-totp" bind:value={totp} inputmode="numeric" maxlength="6" autofocus />
       {/if}
       <div class="actions">
-        <button type="button" class="plain" onclick={() => BrowserOpenURL('https://account.ely.by/register')}>{t('register')}</button>
-        <button class="primary" disabled={busy || !login || !password || (needTotp && !totp)}>{busy ? t('signingIn') : t('signIn')}</button>
+        <button type="button" class="subtle" onclick={() => BrowserOpenURL('https://account.ely.by/register')}><Icon name="external-link" />{t('register')}</button>
+        <button class="primary" disabled={busy || !login || !password || (needTotp && !totp)}><Icon name={busy ? 'loader-circle' : 'log-in'} spin={busy} />{busy ? t('signingIn') : t('signIn')}</button>
       </div>
     </form>
   {:else}
@@ -138,7 +137,7 @@
       <input id="off-nick" bind:value={nick} maxlength="16" placeholder="Steve" />
       <p class="muted small">{t('nickHint')}</p>
       <div class="actions">
-        <button class="primary" disabled={busy || nick.length < 3}>{t('add')}</button>
+        <button class="primary" disabled={busy || nick.length < 3}><Icon name="user-plus" />{t('add')}</button>
       </div>
     </form>
   {/if}
@@ -147,20 +146,19 @@
 
 <style>
   .seg { display: flex; gap: 2px; padding: 2px; margin: 8px 0 10px; border-radius: var(--radius); background: var(--bg); }
-  .seg button { flex: 1; min-height: 28px; color: var(--muted); }
+  .seg button { flex: 1; height: 28px; color: var(--muted); }
   .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--border); }
   .list { display: grid; gap: 2px; max-height: 300px; overflow: auto; }
   .acc { display: flex; align-items: center; gap: 2px; }
-  .pick { flex: 1; display: flex; align-items: center; gap: 10px; text-align: left; padding: 6px 8px; }
+  .pick { flex: 1; height: auto; justify-content: flex-start; gap: 10px; text-align: left; padding: 6px 8px; font-weight: 400; }
   .pick.sel { background: var(--selected); }
   .pick span { flex: 1; display: grid; }
   .pick b { font-weight: 600; }
   .pick small { font-size: 12px; color: var(--muted); }
-  .del { min-height: 28px; width: 28px; padding: 0; display: grid; place-items: center; color: var(--muted); }
-  .del:hover:not(:disabled) { color: var(--danger); }
   .muted { color: var(--muted); margin: 4px 0 0; }
   .small { font-size: 12px; margin-top: 6px; }
   .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .actions :global(.subtle) { margin-right: auto; }
   .bar { height: 4px; margin-top: 14px; border-radius: 2px; background: var(--selected); overflow: hidden; }
   .bar div { width: 30%; height: 100%; background: var(--accent); animation: slide 1.2s ease-in-out infinite; }
   @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }

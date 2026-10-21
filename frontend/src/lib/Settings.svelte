@@ -1,6 +1,7 @@
 <script>
   import { untrack } from 'svelte'
   import Modal from './Modal.svelte'
+  import Icon from './Icon.svelte'
   import { t, tErr, languages, setLanguage } from './i18n.svelte.js'
   import { accents, applyAccent } from './theme.js'
   import { SaveSettings, SetAppearance } from '../../wailsjs/go/main/App.js'
@@ -74,14 +75,14 @@
   {#if error}<p class="error-text">{error}</p>{/if}
   <div class="actions">
     <button onclick={cancel}>{t('cancel')}</button>
-    <button class="primary" onclick={save}>{t('save')}</button>
+    <button class="primary" onclick={save}><Icon name="check" />{t('save')}</button>
   </div>
 </Modal>
 
 <style>
   .label { display: block; color: var(--muted); margin: 12px 0 6px; }
   .colors { display: flex; gap: 8px; }
-  .color { width: 22px; height: 22px; min-height: 0; padding: 0; border-radius: 50%; background: var(--c); border: 1px solid rgb(0 0 0 / .15); }
+  .color { width: 22px; height: 22px; padding: 0; border-radius: 50%; background: var(--c); border: 1px solid rgb(0 0 0 / .15); }
   .color:hover:not(:disabled) { background: var(--c); }
   .color.on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
   .mem { display: flex; align-items: center; gap: 12px; }
