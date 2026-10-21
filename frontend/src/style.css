@@ -23,19 +23,24 @@
   --accent: #fed83d;
   --accent-ink: #1b1b1b;
   --radius: 6px;
+  --bg-shade: linear-gradient(180deg, #f5f5f5, #f0f0f0);
+  --surface-shade: linear-gradient(180deg, #ffffff, #fcfcfc);
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #202020;
-    --surface: #2b2b2b;
-    --border: #3d3d3d;
+    --bg: #151515;
+    --surface: #1c1c1c;
+    --border: #2c2c2c;
     --text: #f2f2f2;
-    --muted: #a6a6a6;
-    --hover: #353535;
-    --selected: #3b3b3b;
-    --field: #1f1f1f;
+    --muted: #a3a3a3;
+    --hover: #262626;
+    --selected: #2b2b2b;
+    --field: #121212;
+    /* Barely-there vertical shading on the two main layers. */
+    --bg-shade: linear-gradient(180deg, #181818, #131313);
+    --surface-shade: linear-gradient(180deg, #1e1e1e, #1a1a1a);
     --danger: #ff7a6e;
     color-scheme: dark;
   }
@@ -47,7 +52,7 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--bg);
+  background: var(--bg) var(--bg-shade) fixed;
   color: var(--text);
   font: 13px/1.45 'Golos Text', 'Segoe UI', system-ui, sans-serif;
   user-select: none;

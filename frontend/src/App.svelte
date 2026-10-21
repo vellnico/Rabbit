@@ -267,7 +267,7 @@
   /* ---- main: a raised layer, like Windows 11 apps ---- */
   main {
     display: flex; flex-direction: column; min-width: 0; min-height: 0;
-    background: var(--surface); border-left: 1px solid var(--border); border-top: 1px solid var(--border);
+    background: var(--surface) var(--surface-shade); border-left: 1px solid var(--border); border-top: 1px solid var(--border);
     border-top-left-radius: 8px; margin-top: 8px;
   }
   header { position: relative; display: flex; align-items: center; gap: 16px; padding: 18px 24px 14px; }
