@@ -395,66 +395,6 @@ Object.assign(uk, {
 })
 
 Object.assign(ru, {
-  msText: 'Вход в аккаунт Microsoft с купленной Minecraft: Java Edition. Откроется страница Microsoft — введите на ней код, и аккаунт появится здесь.',
-  msButton: 'Войти через Microsoft',
-  msWaiting: 'Введите этот код на странице Microsoft. Он уже скопирован.',
-  msOpenPage: 'Открыть страницу',
-  copy: 'Копировать',
-  copied: 'Скопировано',
-  buyGame: 'Купить игру',
-  'err.msNotConfigured': 'Вход через Microsoft не настроен в этой сборке',
-  'err.msUnavailable': 'Сервис Microsoft недоступен',
-  'err.msExpired': 'Сессия Microsoft истекла — войдите заново',
-  'err.msCodeExpired': 'Время на ввод кода истекло — попробуйте ещё раз',
-  'err.msNoGame': 'На этом аккаунте нет Minecraft: Java Edition',
-  'err.msAppNotApproved': 'Приложение лаунчера ещё не одобрено Mojang для входа через Microsoft',
-  'err.xboxNoAccount': 'У аккаунта нет профиля Xbox — создайте его на xbox.com и повторите',
-  'err.xboxRegion': 'Xbox Live недоступен в вашей стране',
-  'err.xboxAdult': 'Аккаунту нужна проверка возраста на xbox.com',
-  'err.xboxChild': 'Детский аккаунт: взрослый должен добавить его в семью Microsoft',
-})
-
-Object.assign(en, {
-  msText: 'Sign in to a Microsoft account that owns Minecraft: Java Edition. A Microsoft page will open — enter the code there and the account appears here.',
-  msButton: 'Sign in with Microsoft',
-  msWaiting: 'Enter this code on the Microsoft page. It is already copied.',
-  msOpenPage: 'Open the page',
-  copy: 'Copy',
-  copied: 'Copied',
-  buyGame: 'Buy the game',
-  'err.msNotConfigured': 'Microsoft sign-in is not configured in this build',
-  'err.msUnavailable': 'Microsoft service is unavailable',
-  'err.msExpired': 'Microsoft session expired — please sign in again',
-  'err.msCodeExpired': 'The code has expired — please try again',
-  'err.msNoGame': 'This account does not own Minecraft: Java Edition',
-  'err.msAppNotApproved': 'The launcher app is not yet approved by Mojang for Microsoft sign-in',
-  'err.xboxNoAccount': 'This account has no Xbox profile — create one on xbox.com and retry',
-  'err.xboxRegion': 'Xbox Live is not available in your country',
-  'err.xboxAdult': 'The account needs age verification on xbox.com',
-  'err.xboxChild': 'Child account: an adult must add it to a Microsoft family',
-})
-
-Object.assign(uk, {
-  msText: 'Вхід в акаунт Microsoft з придбаною Minecraft: Java Edition. Відкриється сторінка Microsoft — введіть на ній код, і акаунт з’явиться тут.',
-  msButton: 'Увійти через Microsoft',
-  msWaiting: 'Введіть цей код на сторінці Microsoft. Його вже скопійовано.',
-  msOpenPage: 'Відкрити сторінку',
-  copy: 'Копіювати',
-  copied: 'Скопійовано',
-  buyGame: 'Купити гру',
-  'err.msNotConfigured': 'Вхід через Microsoft не налаштовано в цій збірці',
-  'err.msUnavailable': 'Сервіс Microsoft недоступний',
-  'err.msExpired': 'Сесія Microsoft закінчилась — увійдіть знову',
-  'err.msCodeExpired': 'Час на введення коду вийшов — спробуйте ще раз',
-  'err.msNoGame': 'На цьому акаунті немає Minecraft: Java Edition',
-  'err.msAppNotApproved': 'Застосунок лаунчера ще не схвалено Mojang для входу через Microsoft',
-  'err.xboxNoAccount': 'В акаунта немає профілю Xbox — створіть його на xbox.com і повторіть',
-  'err.xboxRegion': 'Xbox Live недоступний у вашій країні',
-  'err.xboxAdult': 'Акаунту потрібна перевірка віку на xbox.com',
-  'err.xboxChild': 'Дитячий акаунт: дорослий має додати його до родини Microsoft',
-})
-
-Object.assign(ru, {
   home: 'Главная',
   searchPlaceholderShort: 'Поиск…',
   active: 'Активна',
@@ -573,9 +513,8 @@ export function tErr(e) {
   return t('err.' + key) + (detail ? (key === 'crashed' ? ' ' : ': ') + detail : '')
 }
 
-/** Short description of an account: service or offline. */
+/** Short description of an account: Ely.by or offline. */
 export function accountKind(a) {
-  if (a.kind === 'microsoft') return 'Microsoft'
   if (a.kind === 'elyby') return 'Ely.by'
   return a.elySkin ? t('offlineSkin') : t('offline')
 }

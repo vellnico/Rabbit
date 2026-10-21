@@ -66,10 +66,6 @@ export function LoginElyBrowser() {
   return window['go']['main']['App']['LoginElyBrowser']();
 }
 
-export function LoginMicrosoft() {
-  return window['go']['main']['App']['LoginMicrosoft']();
-}
-
 export function OpenInstanceFolder(arg1, arg2) {
   return window['go']['main']['App']['OpenInstanceFolder'](arg1, arg2);
 }

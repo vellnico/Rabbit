@@ -1,9 +1,9 @@
 <script>
-  // Head of the account's skin (Microsoft or Ely.by), or the nick's initial.
+  // Head of the Ely.by skin, or the nick's initial.
   let { account, size = 28 } = $props()
   let failed = $state(false)
-  let showSkin = $derived(account && (account.skin || account.kind === 'elyby' || account.elySkin) && !failed)
-  let url = $derived(account ? account.skin || `https://skinsystem.ely.by/skins/${encodeURIComponent(account.name)}.png` : '')
+  let showSkin = $derived(account && (account.kind === 'elyby' || account.elySkin) && !failed)
+  let url = $derived(account ? `https://skinsystem.ely.by/skins/${encodeURIComponent(account.name)}.png` : '')
 </script>
 
 {#if showSkin}

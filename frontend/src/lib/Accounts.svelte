@@ -1,15 +1,15 @@
 <script>
-  import { untrack, onMount } from 'svelte'
+  import { untrack } from 'svelte'
   import Modal from './Modal.svelte'
   import Avatar from './Avatar.svelte'
   import Icon from './Icon.svelte'
   import { t, tErr, accountKind } from './i18n.svelte.js'
-  import { AddOfflineAccount, LoginEly, LoginElyBrowser, LoginMicrosoft, CancelLogin, RemoveAccount, SelectAccount } from '../../wailsjs/go/main/App.js'
-  import { BrowserOpenURL, ClipboardSetText, EventsOn } from '../../wailsjs/runtime/runtime.js'
+  import { AddOfflineAccount, LoginEly, LoginElyBrowser, CancelLogin, RemoveAccount, SelectAccount } from '../../wailsjs/go/main/App.js'
+  import { BrowserOpenURL } from '../../wailsjs/runtime/runtime.js'
 
   let { app, onclose, onchange } = $props()
 
-  let tab = $state(untrack(() => (app.accounts?.length ? 'list' : app.microsoft ? 'ms' : 'ely')))
+  let tab = $state(untrack(() => (app.accounts?.length ? 'list' : 'ely')))
   let nick = $state('')
   let login = $state('')
   let password = $state('')
@@ -17,8 +17,6 @@
   let needTotp = $state(false)
   let busy = $state(false)
   let waiting = $state(false)
-  let msCode = $state(null) // {code, url} while waiting for Microsoft
-  let copied = $state(false)
   let error = $state('')
 
   async function run(fn) {
@@ -66,27 +64,6 @@
       tab = 'list'
     })
 
-  onMount(() => EventsOn('mscode', (dc) => (msCode = dc)))
-
-  const msLogin = () =>
-    run(async () => {
-      waiting = true
-      try {
-        await LoginMicrosoft()
-      } finally {
-        waiting = false
-        msCode = null
-        copied = false
-      }
-      await onchange()
-      tab = 'list'
-    })
-
-  async function copyCode() {
-    await ClipboardSetText(msCode.code)
-    copied = true
-  }
-
   function close() {
     if (waiting) CancelLogin()
     onclose()
@@ -96,7 +73,6 @@
   const remove = (id) => run(async () => { await RemoveAccount(id); await onchange() })
   const tabs = $derived([
     ['list', t('mine')],
-    ['ms', 'Microsoft'],
     ['ely', 'Ely.by'],
     ['offline', t('byNick')],
   ])
@@ -127,25 +103,6 @@
         </div>
       {/each}
     </div>
-  {:else if tab === 'ms'}
-    {#if msCode}
-      <p class="muted">{t('msWaiting')}</p>
-      <div class="code">
-        <span>{msCode.code}</span>
-        <button class="subtle" onclick={copyCode}><Icon name={copied ? 'check' : 'copy'} />{copied ? t('copied') : t('copy')}</button>
-      </div>
-      <div class="bar indeterminate"><div></div></div>
-      <div class="actions">
-        <button class="subtle" onclick={() => BrowserOpenURL(msCode.url)}><Icon name="external-link" />{t('msOpenPage')}</button>
-        <button onclick={() => CancelLogin()}>{t('cancel')}</button>
-      </div>
-    {:else}
-      <p class="muted">{app.microsoft ? t('msText') : t('err.msNotConfigured')}</p>
-      <div class="actions">
-        <button class="subtle" onclick={() => BrowserOpenURL('https://www.minecraft.net/store/minecraft-java-bedrock-edition-pc')}><Icon name="external-link" />{t('buyGame')}</button>
-        <button class="primary" onclick={msLogin} disabled={busy || !app.microsoft}><Icon name={busy ? 'loader-circle' : 'log-in'} spin={busy} />{t('msButton')}</button>
-      </div>
-    {/if}
   {:else if tab === 'ely' && app.elyBrowser}
     <p class="muted">{waiting ? t('elyWaiting') : t('elyBrowserText')}</p>
     {#if waiting}
@@ -197,8 +154,6 @@
   .pick b { font-weight: var(--fw-semibold); overflow: hidden; text-overflow: ellipsis; }
   .pick > :global(svg) { color: var(--accent-400); }
   .muted { color: var(--text-secondary); }
-  .code { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-top: var(--sp-3); padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border: 1px solid var(--border-default); border-radius: var(--r-sm); background: var(--bg-surface-1); }
-  .code span { font: var(--fw-semibold) var(--fs-24) / var(--lh-tight) var(--font-mono); letter-spacing: var(--tracking-caps); user-select: text; }
   .actions { display: flex; justify-content: flex-end; gap: var(--sp-2); margin-top: var(--sp-6); }
   .actions :global(.subtle) { margin-right: auto; }
   .bar { margin-top: var(--sp-4); }

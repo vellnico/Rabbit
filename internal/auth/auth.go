@@ -1,4 +1,4 @@
-// Package auth handles offline, Ely.by and Microsoft accounts.
+// Package auth handles offline and Ely.by accounts.
 package auth
 
 import (
@@ -32,9 +32,8 @@ const (
 type Kind string
 
 const (
-	Offline   Kind = "offline"
-	ElyBy     Kind = "elyby"
-	Microsoft Kind = "microsoft"
+	Offline Kind = "offline"
+	ElyBy   Kind = "elyby"
 )
 
 type Account struct {
@@ -48,13 +47,10 @@ type Account struct {
 	// can be shown through authlib-injector.
 	ElySkin bool `json:"elySkin,omitempty"`
 
-	// Set for accounts added through the browser (OAuth2) and Microsoft
-	// accounts; for Microsoft the refresh token is the Microsoft one and
-	// ExpiresAt is when the Minecraft token expires.
+	// Set for accounts added through the browser (OAuth2).
 	OAuth        bool      `json:"oauth,omitempty"`
 	RefreshToken string    `json:"refreshToken,omitempty"`
 	ExpiresAt    time.Time `json:"expiresAt,omitempty"`
-	Skin         string    `json:"skin,omitempty"` // skin texture URL (Microsoft)
 }
 
 var nickRe = regexp.MustCompile(`^[A-Za-z0-9_]{3,16}$`)
@@ -176,12 +172,9 @@ func translate(text string) error {
 	return errors.New(text)
 }
 
-// Refresh makes sure the account token is valid, refreshing it if needed.
+// Refresh makes sure the Ely.by token is valid, refreshing it if needed.
 // It returns ok=false when the user has to sign in again.
 func Refresh(ctx context.Context, acc *Account) (bool, error) {
-	if acc.Kind == Microsoft {
-		return refreshMicrosoft(ctx, acc)
-	}
 	if acc.Kind != ElyBy {
 		return true, nil
 	}

@@ -56,7 +56,6 @@ type AccountView struct {
 	Name    string    `json:"name"`
 	UUID    string    `json:"uuid"`
 	ElySkin bool      `json:"elySkin"`
-	Skin    string    `json:"skin,omitempty"`
 }
 
 type State struct {
@@ -67,7 +66,6 @@ type State struct {
 	MaxMemory  int              `json:"maxMemory"`
 	DataDir    string           `json:"dataDir"`
 	ElyBrowser bool             `json:"elyBrowser"` // OAuth login available
-	Microsoft  bool             `json:"microsoft"`  // Microsoft login available
 }
 
 func (a *App) GetState() State {
@@ -79,10 +77,9 @@ func (a *App) GetState() State {
 		MaxMemory:  totalMemoryMB(),
 		DataDir:    paths.Root(),
 		ElyBrowser: auth.OAuthConfigured(),
-		Microsoft:  auth.MSConfigured(),
 	}
 	for _, acc := range a.accounts {
-		s.Accounts = append(s.Accounts, AccountView{acc.ID, acc.Kind, acc.Name, acc.UUID, acc.ElySkin, acc.Skin})
+		s.Accounts = append(s.Accounts, AccountView{acc.ID, acc.Kind, acc.Name, acc.UUID, acc.ElySkin})
 	}
 	for id := range a.running {
 		s.Running = append(s.Running, id)
@@ -224,8 +221,9 @@ func (a *App) AddOfflineAccount(nick string) error {
 	return nil
 }
 
-// loginContext starts a browser login; a new one or CancelLogin aborts it.
-func (a *App) loginContext() (context.Context, context.CancelFunc) {
+// LoginElyBrowser opens Ely.by in the system browser and waits for the user
+// to confirm access. CancelLogin aborts the wait.
+func (a *App) LoginElyBrowser() error {
 	ctx, cancel := context.WithCancel(a.ctx)
 	a.mu.Lock()
 	if a.login != nil {
@@ -233,37 +231,10 @@ func (a *App) loginContext() (context.Context, context.CancelFunc) {
 	}
 	a.login = cancel
 	a.mu.Unlock()
-	return ctx, cancel
-}
-
-// LoginElyBrowser opens Ely.by in the system browser and waits for the user
-// to confirm access. CancelLogin aborts the wait.
-func (a *App) LoginElyBrowser() error {
-	ctx, cancel := a.loginContext()
 	defer cancel()
 
 	acc, err := auth.LoginElyBrowser(ctx, func(url string) { runtime.BrowserOpenURL(a.ctx, url) })
 	runtime.WindowShow(a.ctx) // bring the launcher back from behind the browser
-	if err != nil {
-		return err
-	}
-	a.addAccount(acc)
-	return nil
-}
-
-// LoginMicrosoft signs in to a Microsoft account with a licensed game. The
-// code to enter is sent to the frontend as the "mscode" event and copied to
-// the clipboard; the sign-in page opens in the browser.
-func (a *App) LoginMicrosoft() error {
-	ctx, cancel := a.loginContext()
-	defer cancel()
-
-	acc, err := auth.LoginMicrosoft(ctx, func(dc auth.DeviceCode) {
-		runtime.ClipboardSetText(a.ctx, dc.Code)
-		runtime.EventsEmit(a.ctx, "mscode", dc)
-		runtime.BrowserOpenURL(a.ctx, dc.URL)
-	})
-	runtime.WindowShow(a.ctx)
 	if err != nil {
 		return err
 	}
@@ -428,20 +399,13 @@ func (a *App) prepare(ctx context.Context, in store.Instance, acc *auth.Account)
 		runtime.EventsEmit(a.ctx, "progress", progressEvent{in.ID, stage, done, total})
 	}
 	report("account", 0, 0)
-	if acc.Kind == auth.ElyBy || acc.Kind == auth.Microsoft {
+	if acc.Kind == auth.ElyBy {
 		ok, err := auth.Refresh(ctx, acc)
-		service := "ely"
-		if acc.Kind == auth.Microsoft {
-			service = "ms"
-		}
 		if err != nil {
-			if msg.IsCoded(err) {
-				return launch.Options{}, err
-			}
-			return launch.Options{}, msg.Wrap(service+"Unavailable", err)
+			return launch.Options{}, msg.Wrap("elyUnavailable", err)
 		}
 		if !ok {
-			return launch.Options{}, msg.E(service + "Expired")
+			return launch.Options{}, msg.E("elyExpired")
 		}
 		a.mu.Lock()
 		for i := range a.accounts {

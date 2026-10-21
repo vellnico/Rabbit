@@ -34,11 +34,8 @@ func Args(o Options) []string {
 	index := v.AssetsIndexName()
 
 	userType := "legacy"
-	switch o.Account.Kind {
-	case auth.ElyBy:
+	if o.Account.Kind == auth.ElyBy {
 		userType = "mojang"
-	case auth.Microsoft:
-		userType = "msa"
 	}
 	vars := map[string]string{
 		"auth_player_name":    o.Account.Name,
