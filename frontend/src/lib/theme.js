@@ -12,11 +12,11 @@ export const accents = {
 }
 
 export const loaders = {
-  vanilla: { name: 'Vanilla', color: '#5d8c3a' },
-  fabric: { name: 'Fabric', color: '#b29467' },
-  quilt: { name: 'Quilt', color: '#9b59b6' },
-  forge: { name: 'Forge', color: '#c0662b' },
-  neoforge: { name: 'NeoForge', color: '#d9541e' },
+  vanilla: { name: 'Vanilla' },
+  fabric: { name: 'Fabric' },
+  quilt: { name: 'Quilt' },
+  forge: { name: 'Forge' },
+  neoforge: { name: 'NeoForge' },
 }
 
 function luminance(r, g, b) {

@@ -231,11 +231,3 @@ func EnsureInjector(ctx context.Context) (string, error) {
 	err := download.One(ctx, download.File{URL: meta.DownloadURL, Path: path, Hash: meta.Checksums.SHA256})
 	return path, err
 }
-
-// DashedUUID formats a 32 char uuid with dashes.
-func DashedUUID(u string) string {
-	if len(u) != 32 {
-		return u
-	}
-	return u[:8] + "-" + u[8:12] + "-" + u[12:16] + "-" + u[16:20] + "-" + u[20:]
-}
