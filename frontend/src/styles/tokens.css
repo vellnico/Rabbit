@@ -1,57 +1,57 @@
-/* Design tokens, see DESIGN.md §2. Every colour, size and duration in the
+/* Design tokens. Every colour, size and duration in the
  * interface comes from here. */
 :root {
-  /* ---------- Поверхности (от самой глубокой к самой высокой) ---------- */
-  --bg-app:        #0A0A0B;   /* фон окна, под всем */
-  --bg-sidebar:    #0E0E10;   /* сайдбар и тайтлбар */
-  --bg-surface-1:  #131316;   /* основная панель контента */
-  --bg-surface-2:  #19191D;   /* карточки, инпуты */
-  --bg-surface-3:  #212126;   /* hover карточек, выпадашки, модалки */
-  --bg-surface-4:  #2A2A30;   /* pressed / выбранная строка */
-  --bg-overlay:    rgba(5, 5, 6, 0.72); /* затемнение под модалкой */
+  /* ---------- Surfaces (from the deepest to the highest) ---------- */
+  --bg-app:        #0A0A0B;   /* window background, under everything */
+  --bg-sidebar:    #0E0E10;   /* sidebar and title bar */
+  --bg-surface-1:  #131316;   /* main content panel */
+  --bg-surface-2:  #19191D;   /* cards, inputs */
+  --bg-surface-3:  #212126;   /* card hover, dropdowns, modals */
+  --bg-surface-4:  #2A2A30;   /* pressed / selected row */
+  --bg-overlay:    rgba(5, 5, 6, 0.72); /* dimming behind a modal */
 
-  /* ---------- Границы ---------- */
+  /* ---------- Borders ---------- */
   --border-subtle:  rgba(255, 255, 255, 0.05);
   --border-default: rgba(255, 255, 255, 0.08);
   --border-strong:  rgba(255, 255, 255, 0.14);
   --border-focus:   var(--accent-400);
 
-  /* ---------- Текст ---------- */
+  /* ---------- Text ---------- */
   --text-primary:   #EDEDEF;
   --text-secondary: #A0A0AB;
   --text-tertiary:  #6A6A75;
   --text-disabled:  #45454D;
-  --text-on-accent: #141405;  /* текст НА жёлтом — всегда тёмный */
+  --text-on-accent: #141405;  /* text ON yellow, always dark */
 
-  /* ---------- Акцент: лимон ---------- */
+  /* ---------- Accent: lemon ---------- */
   --accent-200: #FBF4A8;
   --accent-300: #F8EC74;
-  --accent-400: #F3E046;      /* основной */
-  --accent-500: #E2CC22;      /* hover/pressed основной кнопки */
+  --accent-400: #F3E046;      /* main */
+  --accent-500: #E2CC22;      /* hover/pressed of the primary button */
   --accent-600: #B9A515;
-  --accent-a08: rgba(243, 224, 70, 0.08);  /* фон активного пункта */
+  --accent-a08: rgba(243, 224, 70, 0.08);  /* active item background */
   --accent-a14: rgba(243, 224, 70, 0.14);
-  --accent-a24: rgba(243, 224, 70, 0.24);  /* кольцо фокуса */
+  --accent-a24: rgba(243, 224, 70, 0.24);  /* focus ring */
   --accent-glow: 0 0 0 1px rgba(243,224,70,.35), 0 8px 32px -8px rgba(243,224,70,.35);
   --accent-glow-hover: 0 0 0 1px rgba(243,224,70,.5), 0 8px 36px -8px rgba(243,224,70,.5);
 
-  /* ---------- Семантика (приглушённые, не спорят с акцентом) ---------- */
+  /* ---------- Semantic (muted, so they do not compete with the accent) ---------- */
   --success:     #4ADE80;  --success-a12: rgba(74, 222, 128, 0.12);
   --danger:      #F87171;  --danger-a12:  rgba(248, 113, 113, 0.12);
   --warning:     #FB923C;  --warning-a12: rgba(251, 146, 60, 0.12);
   --info:        #7DD3FC;  --info-a12:    rgba(125, 211, 252, 0.12);
-  --danger-a20:  rgba(248, 113, 113, 0.2);  /* hover кнопки Danger */
-  --close-hover: #E5484D;                   /* hover кнопки закрытия окна */
-  --group-divider: rgba(0, 0, 0, 0.15);     /* разделитель внутри «Играть» */
+  --danger-a20:  rgba(248, 113, 113, 0.2);  /* Danger button hover */
+  --close-hover: #E5484D;                   /* window close button hover */
+  --group-divider: rgba(0, 0, 0, 0.15);     /* divider inside the Play button */
 
-  /* ---------- Точки лоадеров в бейджах ---------- */
+  /* ---------- Loader dots in badges ---------- */
   --loader-vanilla:  #6A6A75;
   --loader-fabric:   #DBD0B4;
   --loader-quilt:    #C084FC;
   --loader-forge:    #E0763A;
   --loader-neoforge: #F59E0B;
 
-  /* ---------- Типографика ---------- */
+  /* ---------- Typography ---------- */
   --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace;
 
@@ -63,31 +63,31 @@
   --lh-tight: 1.2; --lh-normal: 1.45; --lh-log: 1.6;
   --tracking-tight: -0.011em; --tracking-caps: 0.06em; --tracking-play: 0.01em;
 
-  /* ---------- Отступы (сетка 4px) ---------- */
+  /* ---------- Spacing (4px grid) ---------- */
   --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
   --sp-5: 20px; --sp-6: 24px; --sp-7: 28px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
   --sp-half: 2px;
 
-  /* ---------- Радиусы ---------- */
-  --r-xs: 4px;   /* бейджи, чекбоксы */
-  --r-sm: 6px;   /* кнопки, инпуты */
-  --r-md: 10px;  /* карточки */
-  --r-lg: 14px;  /* модалки, крупные панели */
+  /* ---------- Radii ---------- */
+  --r-xs: 4px;   /* badges, checkboxes */
+  --r-sm: 6px;   /* buttons, inputs */
+  --r-md: 10px;  /* cards */
+  --r-lg: 14px;  /* modals, large panels */
   --r-full: 999px;
 
-  /* ---------- Тени (используются редко) ---------- */
+  /* ---------- Shadows (rarely used) ---------- */
   --shadow-pop:   0 12px 32px -8px rgba(0,0,0,.6), 0 0 0 1px var(--border-default);
   --shadow-modal: 0 24px 64px -12px rgba(0,0,0,.7), 0 0 0 1px var(--border-strong);
   --shadow-thumb: 0 1px 3px rgba(0,0,0,.5);
 
-  /* ---------- Движение ---------- */
+  /* ---------- Motion ---------- */
   --ease-out:   cubic-bezier(0.22, 1, 0.36, 1);
   --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
   --dur-press: 80ms;
   --dur-fast: 120ms; --dur-base: 180ms; --dur-slow: 250ms;
   --dur-spin: 700ms; --dur-indeterminate: 1.2s; --dur-tooltip-delay: 400ms;
 
-  /* ---------- Размеры оболочки ---------- */
+  /* ---------- Shell sizes ---------- */
   --titlebar-h: 36px;
   --titlebar-btn-w: 46px;
   --sidebar-w: 64px;

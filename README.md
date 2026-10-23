@@ -1,22 +1,26 @@
 # Rabbit
 
-Лёгкий минималистичный лаунчер Minecraft для Windows на Go + Wails v2 и Svelte.
+A lightweight, minimalist Minecraft launcher for Windows, built with Go + Wails v2 and Svelte.
 
-- Вход через **Ely.by** в браузере (OAuth2, лаунчер не видит пароль) или просто по нику
-- Скины Ely.by в игре через [authlib-injector](https://github.com/yushijinhun/authlib-injector), в том числе для офлайн-ника, если он зарегистрирован на Ely.by
-- Загрузчики: **Vanilla, Fabric, Quilt, Forge, NeoForge**
-- Библиотека [Modrinth](https://modrinth.com) прямо в лаунчере: моды, ресурспаки, шейдеры и модпаки; обязательные зависимости ставятся сами
-- Импорт и экспорт модпаков в формате `.mrpack`
-- Сборки с отдельными папками `mods`, `resourcepacks`, `shaderpacks`, `saves`, `config`
-- Общие `assets` и `libraries` для всех сборок, файлы не скачиваются повторно
-- Java подбирается и скачивается автоматически под версию игры (рантаймы Mojang)
-- Тёмный интерфейс со своим заголовком окна, выбор главного цвета и языка (русский, English, українська; по умолчанию язык системы)
+- Sign in with **Ely.by** in the browser (OAuth2, the launcher never sees your password) or just play with a nickname
+- Ely.by skins in game through [authlib-injector](https://github.com/yushijinhun/authlib-injector), including offline nicknames that are registered on Ely.by
+- Loaders: **Vanilla, Fabric, Quilt, Forge, NeoForge**
+- Built-in [Modrinth](https://modrinth.com) library: mods, resource packs, shaders and modpacks; required dependencies are installed automatically
+- Import and export of modpacks in the `.mrpack` format
+- Instances with their own `mods`, `resourcepacks`, `shaderpacks`, `saves` and `config` folders
+- `assets` and `libraries` shared by all instances, so files are never downloaded twice
+- Java is picked and downloaded automatically for each game version (Mojang runtimes)
+- Dark interface with a custom title bar, a choice of accent color and language (Russian, English, Ukrainian; the system language by default)
 
-Данные хранятся в `%APPDATA%\Rabbit`.
+Launcher data is stored in `%APPDATA%\Rabbit`.
 
-## Сборка
+## Download
 
-Нужны Go 1.25+, Node.js, pnpm и Wails CLI:
+Get `Rabbit-Setup.exe` from the [latest release](https://github.com/vellnico/Rabbit/releases/latest) and run it. No administrator rights are needed.
+
+## Building
+
+You need Go 1.25+, Node.js, pnpm and the Wails CLI:
 
 ```bash
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
@@ -26,60 +30,60 @@ go install github.com/wailsapp/wails/v2/cmd/wails@latest
 ./build.ps1
 ```
 
-Готовый файл: `build/bin/Rabbit.exe`.
+The result is `build/bin/Rabbit.exe`.
 
-### Установщик
+### Installer
 
 ```powershell
 ./build.ps1 -Installer
 ```
 
-Получится `build/bin/Rabbit-Setup.exe`, установщик в стиле лаунчера (тоже Wails и Svelte, общие токены дизайна). Он ставит лаунчер для текущего пользователя в `%LOCALAPPDATA%\Programs\Rabbit` без прав администратора, добавляет ярлык в меню «Пуск» и, по желанию, на рабочий стол, а также регистрирует деинсталлятор в «Приложениях». Повторный запуск новой версии обновляет установленную. Деинсталлятор спрашивает, удалять ли сборки и миры из `%APPDATA%\Rabbit`; по умолчанию они остаются.
+This produces `build/bin/Rabbit-Setup.exe`, an installer styled like the launcher (also Wails and Svelte, sharing the design tokens). It installs the launcher for the current user into `%LOCALAPPDATA%\Programs\Rabbit` without administrator rights, adds a Start menu shortcut and, optionally, a desktop shortcut, and registers the uninstaller in Apps. Running a newer setup updates the installed version. The uninstaller asks whether to delete the instances and worlds in `%APPDATA%\Rabbit`; by default they are kept.
 
-Тихий режим: `Rabbit-Setup.exe /S [/D=папка]` и `uninstall.exe /S` (данные лаунчера остаются).
+Silent mode: `Rabbit-Setup.exe /S [/D=folder]` and `uninstall.exe /S` (launcher data is kept).
 
-Устройство: `installer/` — Go-часть (отдельный модуль; с тегом `setup` в неё встраиваются `Rabbit.exe` и деинсталлятор, без тега это и есть деинсталлятор), `frontend/installer/` — интерфейс. Версию берёт `build.ps1` из корневого `wails.json` и сам подставляет её в лаунчер, установщик и `installer/wails.json` (версия в свойствах exe).
+Layout: `installer/` is the Go part (a separate module; built with the `setup` tag it embeds `Rabbit.exe` and the uninstaller, without the tag it is the uninstaller itself), `frontend/installer/` is its interface. `build.ps1` reads the version from the root `wails.json` and passes it to the launcher, the installer and `installer/wails.json` (the version in the exe properties).
 
-Ярлык в меню «Пуск» создаётся через `IShellLink` с идентификатором приложения `vellnico.Rabbit` (тот же задаёт себе лаунчер при запуске), после чего установщик уведомляет Проводник (`SHChangeNotify`), чтобы ярлык появился в меню сразу.
+The Start menu shortcut is created with `IShellLink` and the application id `vellnico.Rabbit` (the launcher sets the same id at startup); the installer then notifies Explorer (`SHChangeNotify`) so the shortcut shows up in the menu right away.
 
 ### Ely.by OAuth
 
-Для входа через браузер нужно приложение Ely.by:
+Signing in through the browser needs an Ely.by application:
 
-1. Создайте приложение на <https://account.ely.by/dev/applications/new>, тип **Website**.
+1. Create an application at <https://account.ely.by/dev/applications/new>, type **Website**.
 2. Redirect URI: `http://127.0.0.1:25585/callback`.
-3. Положите данные приложения в файл `build.local` рядом с `build.ps1` (он в `.gitignore`, старое имя `elyby.local` тоже читается):
+3. Put the application credentials into `build.local` next to `build.ps1` (it is git-ignored; the old name `elyby.local` is read too):
 
    ```
    ELY_CLIENT_ID=...
    ELY_CLIENT_SECRET=...
    ```
 
-Без этих данных лаунчер показывает обычную форму логина и пароля.
+Without them the launcher shows the regular login and password form.
 
-## Forge и NeoForge
+## Forge and NeoForge
 
-Rabbit запускает официальные установщики Forge и NeoForge (`--installClient`). Если они вам полезны, поддержите их авторов: [Forge](https://www.patreon.com/LexManos/), [NeoForge](https://opencollective.com/neoforged).
+Rabbit runs the official Forge and NeoForge installers (`--installClient`). If you find them useful, please support their authors: [Forge](https://www.patreon.com/LexManos/), [NeoForge](https://opencollective.com/neoforged).
 
-## Структура
+## Structure
 
 ```
-app.go              методы, доступные интерфейсу
-content.go          контент Modrinth и модпаки
-internal/auth       офлайн-аккаунты, Ely.by (OAuth и пароль), authlib-injector
-internal/download   параллельная загрузка с проверкой sha1/sha256/sha512
-internal/java       Java-рантаймы Mojang
-internal/launch     аргументы запуска и процесс игры
-internal/modrinth   поиск и установка контента Modrinth, .mrpack
-internal/mojang     версии, установка, Fabric/Quilt, Forge/NeoForge
-internal/msg        коды ошибок, которые переводит интерфейс
-internal/paths      расположение файлов лаунчера
-internal/store      настройки, аккаунты, сборки
-frontend/           интерфейс на Svelte 5; токены дизайна в src/styles/tokens.css
-frontend/installer/ интерфейс установщика
-installer/          установщик и деинсталлятор
+app.go              methods exposed to the interface
+content.go          Modrinth content and modpacks
+internal/auth       offline accounts, Ely.by (OAuth and password), authlib-injector
+internal/download   parallel downloads with sha1/sha256/sha512 checks
+internal/java       Mojang Java runtimes
+internal/launch     launch arguments and the game process
+internal/modrinth   Modrinth search and content installation, .mrpack
+internal/mojang     versions, installation, Fabric/Quilt, Forge/NeoForge
+internal/msg        error codes translated by the interface
+internal/paths      launcher file locations
+internal/store      settings, accounts, instances
+frontend/           Svelte 5 interface; design tokens in src/styles/tokens.css
+frontend/installer/ installer interface
+installer/          installer and uninstaller
 ```
 
-## Лицензия
+## License
 
-MIT. Шрифты [Inter](https://github.com/rsms/inter) и [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) распространяются по SIL Open Font License, иконки [Lucide](https://lucide.dev) по ISC.
+MIT. The [Inter](https://github.com/rsms/inter) and [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) fonts are distributed under the SIL Open Font License, the [Lucide](https://lucide.dev) icons under ISC.
