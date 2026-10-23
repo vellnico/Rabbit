@@ -3,6 +3,11 @@ build/bin/
 frontend/dist/
 frontend/node_modules/
 frontend/package.json.md5
+installer/build/bin/
+installer/build/appicon.png
+installer/build/windows/icon.ico
+installer/dist/
+installer/payload/
 
 # Local sign-in keys (see build.ps1)
 *.local

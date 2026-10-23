@@ -112,7 +112,7 @@ func post(ctx context.Context, path string, body any) (*yggResponse, int, error)
 		return nil, 0, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := download.Do(req)
 	if err != nil {
 		return nil, 0, err
 	}

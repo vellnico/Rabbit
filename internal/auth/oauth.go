@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vellnico/rabbit/internal/download"
 	"github.com/vellnico/rabbit/internal/msg"
 )
 
@@ -53,7 +54,7 @@ func tokenRequest(ctx context.Context, form url.Values) (*tokenResponse, error) 
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := download.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,7 @@ func accountInfo(ctx context.Context, token string) (uuid, name string, err erro
 		return "", "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := download.Do(req)
 	if err != nil {
 		return "", "", err
 	}

@@ -16,6 +16,9 @@ import (
 	"github.com/vellnico/rabbit/internal/paths"
 )
 
+// LauncherVersion is passed to the game; build.ps1 sets it from wails.json.
+var LauncherVersion = "0.1.0"
+
 type Options struct {
 	Version  *mojang.Version
 	Java     string
@@ -54,7 +57,7 @@ func Args(o Options) []string {
 		"version_type":        "Rabbit",
 		"natives_directory":   natives,
 		"launcher_name":       "Rabbit",
-		"launcher_version":    "0.1.0",
+		"launcher_version":    LauncherVersion,
 		"classpath":           cp,
 		"classpath_separator": string(os.PathListSeparator),
 		"library_directory":   paths.Libraries(),

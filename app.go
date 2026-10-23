@@ -355,6 +355,10 @@ func (a *App) Launch(id string) error {
 			a.mu.Lock()
 			sess.proc = proc
 			a.mu.Unlock()
+			if err == nil && ctx.Err() != nil {
+				proc.Kill() // Stop was pressed while the game was starting
+				return      // finish reports the stop
+			}
 		}
 		if err != nil {
 			a.mu.Lock()
@@ -502,6 +506,16 @@ func totalMemoryMB() int {
 		return 8192
 	}
 	return int(m.totalPhys / 1024 / 1024)
+}
+
+// setAppID sets the AppUserModelID of the process; it must run before the
+// window is created.
+func setAppID(id string) {
+	p, err := syscall.UTF16PtrFromString(id)
+	if err != nil {
+		return
+	}
+	syscall.NewLazyDLL("shell32.dll").NewProc("SetCurrentProcessExplicitAppUserModelID").Call(uintptr(unsafe.Pointer(p)))
 }
 
 // startExplorer runs explorer.exe with a flag and a quoted path; explorer

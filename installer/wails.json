@@ -1,0 +1,16 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "RabbitSetup",
+  "outputfilename": "Rabbit-Setup",
+  "frontend:dir": "../frontend",
+  "author": {
+    "name": "vellnico"
+  },
+  "info": {
+    "companyName": "vellnico",
+    "productName": "Rabbit Setup",
+    "productVersion": "0.1.0",
+    "copyright": "Copyright (c) 2026 vellnico",
+    "comments": "Rabbit launcher installer"
+  }
+}

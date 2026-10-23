@@ -44,14 +44,20 @@ type File struct {
 // Progress is reported while a batch is downloading.
 type Progress func(done, total int)
 
+// Do sends a request with the launcher's user agent and the shared client,
+// whose timeout keeps a stalled server from hanging the launcher.
+func Do(req *http.Request) (*http.Response, error) {
+	req.Header.Set("User-Agent", UserAgent)
+	return client.Do(req)
+}
+
 // Get performs a GET request with the launcher's user agent.
 func Get(ctx context.Context, url string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", UserAgent)
-	resp, err := client.Do(req)
+	resp, err := Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +149,9 @@ func fetch(ctx context.Context, f File) error {
 	}
 	h := newHash(f.Hash)
 	_, err = io.Copy(io.MultiWriter(out, h), resp.Body)
-	out.Close()
+	if cerr := out.Close(); err == nil {
+		err = cerr
+	}
 	if err != nil {
 		os.Remove(tmp)
 		return err

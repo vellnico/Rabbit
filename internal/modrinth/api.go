@@ -28,8 +28,7 @@ func post(ctx context.Context, path string, body, v any) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", download.UserAgent)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := download.Do(req)
 	if err != nil {
 		return err
 	}

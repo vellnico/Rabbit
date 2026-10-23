@@ -12,7 +12,13 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+// appID is also stored in the Start menu shortcut by the installer
+// (installer/shortcut.go): with the same id Windows shows the shortcut, a
+// pinned icon and the running launcher as one app.
+const appID = "vellnico.Rabbit"
+
 func main() {
+	setAppID(appID)
 	app := NewApp()
 	err := wails.Run(&options.App{
 		Title:     "Rabbit",

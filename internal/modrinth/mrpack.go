@@ -236,10 +236,27 @@ func Export(ctx context.Context, dir string, o ExportOptions, out string, report
 		size         int64
 	}
 	var locals []local
+	var overrides []string
+	addTree := func(root string) {
+		filepath.WalkDir(root, func(p string, e os.DirEntry, err error) error {
+			if err == nil && !e.IsDir() {
+				rel, _ := filepath.Rel(dir, p)
+				overrides = append(overrides, filepath.ToSlash(rel))
+			}
+			return nil
+		})
+	}
 	for folder := range contentFolders {
 		entries, _ := os.ReadDir(filepath.Join(dir, folder))
 		for _, e := range entries {
-			if e.IsDir() || strings.HasSuffix(e.Name(), disabledSuffix) {
+			if strings.HasSuffix(e.Name(), disabledSuffix) {
+				continue
+			}
+			if e.IsDir() {
+				// Unpacked resource and shader packs go into overrides as is.
+				if folder != "mods" {
+					addTree(filepath.Join(dir, folder, e.Name()))
+				}
 				continue
 			}
 			p := filepath.Join(dir, folder, e.Name())
@@ -262,6 +279,7 @@ func Export(ctx context.Context, dir string, o ExportOptions, out string, report
 
 	idx := Index{
 		FormatVersion: 1, Game: "minecraft", VersionID: o.Version, Name: o.Name,
+		Files:        []IndexFile{}, // the format requires an array, not null
 		Dependencies: map[string]string{"minecraft": o.Game},
 	}
 	for key, l := range loaderKeys {
@@ -269,7 +287,6 @@ func Export(ctx context.Context, dir string, o ExportOptions, out string, report
 			idx.Dependencies[key] = o.LoaderVersion
 		}
 	}
-	var overrides []string
 	for _, l := range locals {
 		v, ok := found[l.sha1]
 		var src string
@@ -292,13 +309,7 @@ func Export(ctx context.Context, dir string, o ExportOptions, out string, report
 		})
 	}
 	for _, d := range exportOverrides {
-		filepath.WalkDir(filepath.Join(dir, d), func(p string, e os.DirEntry, err error) error {
-			if err == nil && !e.IsDir() {
-				rel, _ := filepath.Rel(dir, p)
-				overrides = append(overrides, filepath.ToSlash(rel))
-			}
-			return nil
-		})
+		addTree(filepath.Join(dir, d))
 	}
 
 	tmp := out + ".part"

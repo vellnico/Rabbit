@@ -72,7 +72,7 @@ func Ensure(ctx context.Context, component string, report func(done, total int))
 		entries = all["windows-x64"][component]
 	}
 	if len(entries) == 0 {
-		return "", fmt.Errorf("Java %s недоступна для %s", component, platform())
+		return "", fmt.Errorf("no Java runtime %s for %s", component, platform())
 	}
 	e := entries[0]
 	if cur, err := os.ReadFile(marker); err == nil && string(cur) == e.Manifest.SHA1 {

@@ -151,6 +151,16 @@ func installerVersionID(jar string) (string, error) {
 // EnsureInstallerLoader installs Forge/NeoForge using java (a java.exe or
 // javaw.exe path) and returns the installed version id.
 func EnsureInstallerLoader(ctx context.Context, loader, game, version, java string) (string, error) {
+	// Modern installers create these ids: skip downloading the installer
+	// (several MB) on every launch once the loader is in place.
+	guess := "neoforge-" + version
+	if loader == "forge" {
+		guess = game + "-forge-" + version
+	}
+	if _, err := os.Stat(versionFile(guess)); err == nil {
+		return guess, nil
+	}
+
 	tmp, err := os.MkdirTemp("", "rabbit-installer-")
 	if err != nil {
 		return "", err
