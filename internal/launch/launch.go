@@ -17,7 +17,7 @@ import (
 )
 
 // LauncherVersion is passed to the game; build.ps1 sets it from wails.json.
-var LauncherVersion = "0.1.0"
+var LauncherVersion = "dev"
 
 type Options struct {
 	Version  *mojang.Version

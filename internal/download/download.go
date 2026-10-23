@@ -21,7 +21,7 @@ import (
 )
 
 // UserAgent identifies the launcher to web APIs (Modrinth requires one).
-const UserAgent = "Rabbit-Launcher/0.1 (+https://github.com/vellnico/rabbit)"
+const UserAgent = "Rabbit-Launcher (+https://github.com/vellnico/Rabbit)"
 
 var client = &http.Client{
 	Timeout: 5 * time.Minute,
