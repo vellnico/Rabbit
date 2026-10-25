@@ -24,6 +24,7 @@ type Settings struct {
 	JVMArgs          string `json:"jvmArgs"`
 	Accent           string `json:"accent"`   // accent color name
 	Language         string `json:"language"` // "" follows the system
+	CheckUpdates     bool   `json:"checkUpdates"`
 }
 
 func readJSON(path string, v any) error {
@@ -50,7 +51,7 @@ func writeJSON(path string, v any) error {
 }
 
 func LoadSettings() Settings {
-	s := Settings{MemoryMB: 4096, Accent: "yellow"}
+	s := Settings{MemoryMB: 4096, Accent: "yellow", CheckUpdates: true}
 	readJSON(paths.ConfigFile("settings.json"), &s)
 	if s.MemoryMB < 512 {
 		s.MemoryMB = 4096

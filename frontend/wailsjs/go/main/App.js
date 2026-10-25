@@ -10,6 +10,10 @@ export function CancelLogin() {
   return window['go']['main']['App']['CancelLogin']();
 }
 
+export function CheckUpdate() {
+  return window['go']['main']['App']['CheckUpdate']();
+}
+
 export function CreateInstance(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['CreateInstance'](arg1, arg2, arg3, arg4);
 }
@@ -36,6 +40,10 @@ export function InstallContent(arg1, arg2, arg3) {
 
 export function InstallModpack(arg1) {
   return window['go']['main']['App']['InstallModpack'](arg1);
+}
+
+export function InstallUpdate() {
+  return window['go']['main']['App']['InstallUpdate']();
 }
 
 export function InstalledProjects(arg1) {
@@ -96,6 +104,10 @@ export function SelectInstance(arg1) {
 
 export function SetAppearance(arg1, arg2) {
   return window['go']['main']['App']['SetAppearance'](arg1, arg2);
+}
+
+export function SetCheckUpdates(arg1) {
+  return window['go']['main']['App']['SetCheckUpdates'](arg1);
 }
 
 export function SetContentEnabled(arg1, arg2, arg3) {

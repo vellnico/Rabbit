@@ -2,6 +2,7 @@
 // program without a payload is its uninstaller.
 //
 //	Rabbit-Setup.exe        (built with -tags setup) installs, /S silently, /D=folder
+//	                        --run starts the launcher after a silent install
 //	uninstall.exe           removes the launcher, /S silently
 package main
 
@@ -30,10 +31,13 @@ func main() {
 	silent := false
 	from := "" // install folder, when the uninstaller runs from a temp copy
 	dir := ""  // install folder for a silent install
+	run := false
 	for i := 1; i < len(os.Args); i++ {
 		switch os.Args[i] {
 		case "/S", "/s", "--silent":
 			silent = true
+		case "--run": // used by the launcher updater
+			run = true
 		case "--from":
 			if i+1 < len(os.Args) {
 				from = os.Args[i+1]
@@ -46,7 +50,7 @@ func main() {
 		}
 	}
 
-	s := &Setup{mode: modeInstall, dir: dir}
+	s := &Setup{mode: modeInstall, dir: dir, run: run}
 	if !hasPayload {
 		s.mode = modeUninstall
 		if from == "" {

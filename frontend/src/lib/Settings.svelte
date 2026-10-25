@@ -2,9 +2,11 @@
   import { untrack } from 'svelte'
   import { t, tErr, languages, setLanguage } from './i18n.svelte.js'
   import { accents, applyAccent } from './theme.js'
-  import { SaveSettings, SetAppearance } from '../../wailsjs/go/main/App.js'
+  import Icon from './Icon.svelte'
+  import { SaveSettings, SetAppearance, SetCheckUpdates, CheckUpdate } from '../../wailsjs/go/main/App.js'
 
-  let { app, onchange } = $props()
+  // onupdate receives the result of "Check now": a newer release or null.
+  let { app, onchange, onupdate = () => {} } = $props()
 
   // Every change is saved right away.
   const init = untrack(() => ({ ...app.settings, maxMemory: app.maxMemory }))
@@ -15,7 +17,35 @@
   let jvmArgs = $state(init.jvmArgs ?? '')
   let accent = $state(init.accent || 'yellow')
   let language = $state(init.language ?? '')
+  let checkUpdates = $state(init.checkUpdates ?? true)
+  let checking = $state(false)
+  let upToDate = $state(false)
   let error = $state('')
+
+  async function setCheckUpdates() {
+    error = ''
+    try {
+      await SetCheckUpdates(checkUpdates)
+      await onchange()
+    } catch (e) {
+      error = tErr(e)
+    }
+  }
+
+  async function checkNow() {
+    checking = true
+    upToDate = false
+    error = ''
+    try {
+      const u = await CheckUpdate()
+      upToDate = !u
+      onupdate(u)
+    } catch (e) {
+      error = tErr(e)
+    } finally {
+      checking = false
+    }
+  }
 
   function setAccent(name) {
     accent = name
@@ -78,6 +108,19 @@
     <input type="checkbox" class="toggle" bind:checked={closeOnLaunch} onchange={save} aria-label={t('hideOnLaunch')} />
   </div>
   <div class="row">
+    <div class="text"><b>{t('autoUpdate')}</b><p>{t('autoUpdateHint')}</p></div>
+    <input type="checkbox" class="toggle" bind:checked={checkUpdates} onchange={setCheckUpdates} aria-label={t('autoUpdate')} />
+  </div>
+  <div class="row">
+    <div class="text">
+      <b>{t('appVersion', { v: app.version })}</b>
+      {#if upToDate}<p class="ok"><Icon name="circle-check" size={12} />{t('update.upToDate')}</p>{/if}
+    </div>
+    <button onclick={checkNow} disabled={checking || app.version === 'dev'}>
+      <Icon name={checking ? 'loader-circle' : 'download'} spin={checking} />{checking ? t('update.checking') : t('update.check')}
+    </button>
+  </div>
+  <div class="row">
     <div class="text"><b>{t('dataDir')}</b><p>{t('dataDirHint')}</p></div>
     <span class="path mono selectable">{app.dataDir}</span>
   </div>
@@ -102,5 +145,6 @@
   .mem { width: 300px; flex: none; display: flex; align-items: center; gap: var(--sp-3); }
   .mem input { flex: 1; }
   .chip { flex: none; min-width: 80px; padding: var(--sp-1) var(--sp-2); text-align: right; font-size: var(--fs-12); color: var(--text-secondary); background: var(--bg-surface-2); border: 1px solid var(--border-subtle); border-radius: var(--r-xs); }
+  .text .ok { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--success); }
   .path { max-width: 320px; font-size: var(--fs-12); color: var(--text-secondary); text-align: right; word-break: break-all; }
 </style>

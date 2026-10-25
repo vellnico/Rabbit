@@ -9,14 +9,16 @@
   import Settings from './lib/Settings.svelte'
   import Library from './lib/Library.svelte'
   import Installed from './lib/Installed.svelte'
+  import Update from './lib/Update.svelte'
   import { t, tErr, setLanguage, formatDate, accountKind } from './lib/i18n.svelte.js'
   import { applyAccent, loaders, hasMods, formatLoaderVersion } from './lib/theme.js'
-  import { GetState, Launch, Stop, SelectInstance, DeleteInstance, OpenInstanceFolder, ExportModpack, ShowInFolder } from '../wailsjs/go/main/App.js'
+  import { GetState, Launch, Stop, SelectInstance, DeleteInstance, OpenInstanceFolder, ExportModpack, ShowInFolder, CheckUpdate } from '../wailsjs/go/main/App.js'
   import { EventsOn } from '../wailsjs/runtime/runtime.js'
 
   let app = $state(null)
   let view = $state('home') // home | instances | library | settings
-  let modal = $state('') // '', 'new', 'accounts'
+  let modal = $state('') // '', 'new', 'accounts', 'update'
+  let update = $state(null) // newer release, see Update.svelte
   let progress = $state({}) // instance id -> {stage, done, total}
   let status = $state({}) // instance id -> {state, message, log}
   let confirmDelete = $state(false)
@@ -41,6 +43,8 @@
     refresh().then(() => {
       applyAccent(app.settings.accent)
       setLanguage(app.settings.language)
+      // Silent at startup: a failed check only matters when asked for in Settings.
+      if (app.settings.checkUpdates) CheckUpdate().then((u) => (update = u)).catch(() => {})
     })
     const off1 = EventsOn('progress', (e) => (progress[e.instance] = e))
     const off2 = EventsOn('state', (e) => {
@@ -122,7 +126,7 @@
 
 {#if app}
   <div class="window">
-    <Titlebar />
+    <Titlebar {update} onupdate={() => (modal = 'update')} />
     <div class="shell">
       <nav class="rail">
         <div class="group">
@@ -284,7 +288,7 @@
                 </div>
               {/if}
             {:else}
-              <Settings {app} onchange={refresh} />
+              <Settings {app} onchange={refresh} onupdate={(u) => { update = u; if (u) modal = 'update' }} />
             {/if}
           </div>
         {/key}
@@ -296,6 +300,8 @@
     <NewInstance onclose={() => (modal = '')} oncreated={async () => { modal = ''; tab = 'overview'; view = 'home'; await refresh() }} />
   {:else if modal === 'accounts'}
     <Accounts {app} onclose={() => (modal = '')} onchange={refresh} />
+  {:else if modal === 'update' && update}
+    <Update {update} onclose={() => (modal = '')} />
   {/if}
 {/if}
 

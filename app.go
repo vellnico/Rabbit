@@ -33,6 +33,7 @@ type App struct {
 	accounts []auth.Account
 	running  map[string]*session
 	login    context.CancelFunc // pending browser login
+	release  *release           // newer release found by CheckUpdate
 }
 
 type session struct {
@@ -47,6 +48,7 @@ func (a *App) startup(ctx context.Context) {
 	os.MkdirAll(paths.Root(), 0o755)
 	a.settings = store.LoadSettings()
 	a.accounts = store.LoadAccounts()
+	removeOldExe()
 }
 
 // AccountView is an account without secrets.
@@ -66,6 +68,7 @@ type State struct {
 	MaxMemory  int              `json:"maxMemory"`
 	DataDir    string           `json:"dataDir"`
 	ElyBrowser bool             `json:"elyBrowser"` // OAuth login available
+	Version    string           `json:"version"`    // launcher version, "dev" in development
 }
 
 func (a *App) GetState() State {
@@ -77,6 +80,7 @@ func (a *App) GetState() State {
 		MaxMemory:  totalMemoryMB(),
 		DataDir:    paths.Root(),
 		ElyBrowser: auth.OAuthConfigured(),
+		Version:    launch.LauncherVersion,
 	}
 	for _, acc := range a.accounts {
 		s.Accounts = append(s.Accounts, AccountView{acc.ID, acc.Kind, acc.Name, acc.UUID, acc.ElySkin})
@@ -185,6 +189,14 @@ func (a *App) SaveSettings(memoryMB int, closeOnLaunch bool, jvmArgs string) err
 	a.settings.MemoryMB = memoryMB
 	a.settings.CloseOnLaunch = closeOnLaunch
 	a.settings.JVMArgs = strings.TrimSpace(jvmArgs)
+	return store.SaveSettings(a.settings)
+}
+
+// SetCheckUpdates turns the update check at startup on or off.
+func (a *App) SetCheckUpdates(on bool) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.settings.CheckUpdates = on
 	return store.SaveSettings(a.settings)
 }
 

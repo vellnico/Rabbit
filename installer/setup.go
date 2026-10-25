@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -22,6 +23,7 @@ type Setup struct {
 	ctx  context.Context
 	mode string
 	dir  string // install folder: uninstall mode, or /D= of a silent install
+	run  bool   // start the launcher after a silent install
 }
 
 func (s *Setup) startup(ctx context.Context) { s.ctx = ctx }
@@ -108,6 +110,19 @@ func (s *Setup) runSilent() error {
 	if s.dir != "" {
 		in.Dir = s.dir
 	}
+	// The updater starts setup and quits: give the launcher time to exit.
+	exe := filepath.Join(in.Dir, productExe)
+	for i := 0; i < 100 && inUse(exe); i++ {
+		time.Sleep(200 * time.Millisecond)
+	}
 	_, err := os.Stat(desktopShortcut())
-	return install(in.Dir, in.InstalledVersion != "" && err == nil, nil)
+	if err := install(in.Dir, in.InstalledVersion != "" && err == nil, nil); err != nil {
+		return err
+	}
+	if s.run {
+		cmd := exec.Command(exe)
+		cmd.Dir = in.Dir
+		cmd.Start()
+	}
+	return nil
 }

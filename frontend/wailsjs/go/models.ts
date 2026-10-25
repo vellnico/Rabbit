@@ -28,6 +28,7 @@ export namespace main {
 	    maxMemory: number;
 	    dataDir: string;
 	    elyBrowser: boolean;
+	    version: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new State(source);
@@ -42,6 +43,7 @@ export namespace main {
 	        this.maxMemory = source["maxMemory"];
 	        this.dataDir = source["dataDir"];
 	        this.elyBrowser = source["elyBrowser"];
+	        this.version = source["version"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -61,6 +63,24 @@ export namespace main {
 		    }
 		    return a;
 		}
+	}
+	export class UpdateInfo {
+	    version: string;
+	    current: string;
+	    notes: string;
+	    url: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new UpdateInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
+	        this.current = source["current"];
+	        this.notes = source["notes"];
+	        this.url = source["url"];
+	    }
 	}
 	export class VersionInfo {
 	    id: string;
@@ -256,6 +276,7 @@ export namespace store {
 	    jvmArgs: string;
 	    accent: string;
 	    language: string;
+	    checkUpdates: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -270,6 +291,7 @@ export namespace store {
 	        this.jvmArgs = source["jvmArgs"];
 	        this.accent = source["accent"];
 	        this.language = source["language"];
+	        this.checkUpdates = source["checkUpdates"];
 	    }
 	}
 
