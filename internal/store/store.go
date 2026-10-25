@@ -74,7 +74,7 @@ type Instance struct {
 	ID            string    `json:"id"` // folder name
 	Name          string    `json:"name"`
 	GameVersion   string    `json:"gameVersion"`
-	Loader        string    `json:"loader"` // vanilla, fabric, quilt, forge, neoforge
+	Loader        string    `json:"loader"` // vanilla, fabric, quilt, forge, neoforge, optifine
 	LoaderVersion string    `json:"loaderVersion,omitempty"`
 	Created       time.Time `json:"created"`
 	LastPlayed    time.Time `json:"lastPlayed,omitempty"`

@@ -127,7 +127,11 @@ func One(ctx context.Context, f File) error {
 		if err = fetch(ctx, f); err == nil || ctx.Err() != nil {
 			return err
 		}
-		time.Sleep(time.Duration(attempt+1) * 500 * time.Millisecond)
+		select { // a cancelled launch must not wait out the retries
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Duration(attempt+1) * 500 * time.Millisecond):
+		}
 	}
 	return err
 }

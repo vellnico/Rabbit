@@ -4,7 +4,7 @@ A lightweight, minimalist Minecraft launcher for Windows, built with Go + Wails 
 
 - Sign in with **Ely.by** in the browser (OAuth2, the launcher never sees your password) or just play with a nickname
 - Ely.by skins in game through [authlib-injector](https://github.com/yushijinhun/authlib-injector), including offline nicknames that are registered on Ely.by
-- Loaders: **Vanilla, Fabric, Quilt, Forge, NeoForge**
+- Loaders: **Vanilla, Fabric, Quilt, Forge, NeoForge, OptiFine**
 - Built-in [Modrinth](https://modrinth.com) library: mods, resource packs, shaders and modpacks; required dependencies are installed automatically
 - Import and export of modpacks in the `.mrpack` format
 - Instances with their own `mods`, `resourcepacks`, `shaderpacks`, `saves` and `config` folders
@@ -60,6 +60,10 @@ Signing in through the browser needs an Ely.by application:
    ```
 
 Without them the launcher shows the regular login and password form.
+
+## OptiFine
+
+Rabbit downloads OptiFine from [optifine.net](https://optifine.net/downloads) and installs it the way the official installer does: the OptiFine library is patched against the vanilla jar (`optifine.Patcher`) and a version inheriting from vanilla starts the game through launchwrapper with `optifine.OptiFineTweaker`. Shaders in the library are filtered to packs that work with OptiFine. To use OptiFine together with Forge, put its jar into the `mods` folder of a Forge instance.
 
 ## Forge and NeoForge
 

@@ -1,7 +1,7 @@
 <script>
   import Icon from './Icon.svelte'
   import { t } from './i18n.svelte.js'
-  import { loaders } from './theme.js'
+  import { loaders, hasMods } from './theme.js'
 
   let { app, selected, status, onpick, oncreate } = $props()
 
@@ -35,7 +35,7 @@
   <div class="grid">
     {#each list as inst (inst.id)}
       <button class="card" class:sel={selected?.id === inst.id} onclick={() => onpick(inst.id)}>
-        <span class="glyph"><Icon name={inst.loader === 'vanilla' ? 'package' : 'blocks'} size={20} /></span>
+        <span class="glyph"><Icon name={hasMods(inst.loader) ? 'blocks' : 'package'} size={20} /></span>
         <span class="text">
           <b>{inst.name}</b>
           <span class="meta">

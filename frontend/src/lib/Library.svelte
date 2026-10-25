@@ -102,7 +102,7 @@
     </select>
   </div>
 
-  {#if type === 'shader' && instance}<p class="hint">{t('shadersHint')}</p>{/if}
+  {#if type === 'shader' && instance}<p class="hint">{t(instance.loader === 'optifine' ? 'shadersHintOptifine' : 'shadersHint')}</p>{/if}
   {#if error}<p class="error-text">{error}</p>{/if}
 
   <div class="results">

@@ -185,26 +185,35 @@ func EnsureInstallerLoader(ctx context.Context, loader, game, version, java stri
 		os.WriteFile(profiles, []byte(`{"profiles":{}}`), 0o644)
 	}
 
-	if dir := filepath.Dir(java); strings.EqualFold(filepath.Base(java), "javaw.exe") {
-		java = filepath.Join(dir, "java.exe")
-	}
-	cmd := exec.CommandContext(ctx, java, "-jar", jar, "--installClient", paths.Root())
-	cmd.Dir = tmp
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000} // CREATE_NO_WINDOW
-	var out bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &out, &out
-	if err := cmd.Run(); err != nil {
-		if ctx.Err() != nil {
-			return "", ctx.Err()
-		}
-		lines := strings.Split(strings.TrimSpace(out.String()), "\n")
-		if len(lines) > 8 {
-			lines = lines[len(lines)-8:]
-		}
-		return "", fmt.Errorf("%v\n%s", err, strings.Join(lines, "\n"))
+	if err := runJava(ctx, java, tmp, "-jar", jar, "--installClient", paths.Root()); err != nil {
+		return "", err
 	}
 	if _, err := os.Stat(versionFile(id)); err != nil {
 		return "", fmt.Errorf("installer did not create %s", id)
 	}
 	return id, nil
+}
+
+// runJava runs a console java tool (java is a java.exe or javaw.exe path)
+// without a window; on failure the error carries the last lines of output.
+func runJava(ctx context.Context, java, dir string, args ...string) error {
+	if strings.EqualFold(filepath.Base(java), "javaw.exe") {
+		java = filepath.Join(filepath.Dir(java), "java.exe")
+	}
+	cmd := exec.CommandContext(ctx, java, args...)
+	cmd.Dir = dir
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000} // CREATE_NO_WINDOW
+	var out bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &out, &out
+	if err := cmd.Run(); err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+		if len(lines) > 8 {
+			lines = lines[len(lines)-8:]
+		}
+		return fmt.Errorf("%v\n%s", err, strings.Join(lines, "\n"))
+	}
+	return nil
 }

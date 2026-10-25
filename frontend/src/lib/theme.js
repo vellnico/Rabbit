@@ -18,7 +18,14 @@ export const loaders = {
   quilt: { name: 'Quilt', color: 'var(--loader-quilt)' },
   forge: { name: 'Forge', color: 'var(--loader-forge)' },
   neoforge: { name: 'NeoForge', color: 'var(--loader-neoforge)' },
+  optifine: { name: 'OptiFine', color: 'var(--loader-optifine)' },
 }
+
+// Whether the instance runs mods (OptiFine is a standalone game patch).
+export const hasMods = (loader) => !!loaders[loader] && loader !== 'vanilla' && loader !== 'optifine'
+
+// OptiFine editions are file name parts: "HD_U_I6" -> "HD U I6", "HD_U_J1_pre9" -> "HD U J1 pre9".
+export const formatLoaderVersion = (loader, v) => (loader === 'optifine' ? v.replaceAll('_', ' ') : v)
 
 function luminance(r, g, b) {
   const f = (c) => {

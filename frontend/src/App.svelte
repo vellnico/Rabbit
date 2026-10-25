@@ -10,7 +10,7 @@
   import Library from './lib/Library.svelte'
   import Installed from './lib/Installed.svelte'
   import { t, tErr, setLanguage, formatDate, accountKind } from './lib/i18n.svelte.js'
-  import { applyAccent, loaders } from './lib/theme.js'
+  import { applyAccent, loaders, hasMods, formatLoaderVersion } from './lib/theme.js'
   import { GetState, Launch, Stop, SelectInstance, DeleteInstance, OpenInstanceFolder, ExportModpack, ShowInFolder } from '../wailsjs/go/main/App.js'
   import { EventsOn } from '../wailsjs/runtime/runtime.js'
 
@@ -112,10 +112,10 @@
     ['config', 'sliders-horizontal'],
     ['', 'folder-open'],
   ]
-  const libraryTypes = (inst) => (inst.loader === 'vanilla' ? ['resourcepack', 'shader'] : ['mod', 'resourcepack', 'shader'])
+  const libraryTypes = (inst) => (hasMods(inst.loader) ? ['mod', 'resourcepack', 'shader'] : ['resourcepack', 'shader'])
   const percent = (p) => (p?.total ? Math.round((p.done / p.total) * 100) : null)
   const loaderOf = (inst) => loaders[inst.loader] ?? loaders.vanilla
-  const loaderLabel = (inst) => (inst.loaderVersion ? `${loaderOf(inst).name} ${inst.loaderVersion}` : loaderOf(inst).name)
+  const loaderLabel = (inst) => (inst.loaderVersion ? `${loaderOf(inst).name} ${formatLoaderVersion(inst.loader, inst.loaderVersion)}` : loaderOf(inst).name)
 </script>
 
 <svelte:window onclick={() => (picker = false)} oncontextmenu={(e) => !e.target.closest('input, textarea, .selectable') && e.preventDefault()} />
@@ -224,7 +224,7 @@
                   <h2>{t('openFolder')}</h2>
                   <div class="buttons">
                     {#each folders as [dir, icon] (dir)}
-                      {#if dir !== 'mods' || selected.loader !== 'vanilla'}
+                      {#if dir !== 'mods' || hasMods(selected.loader)}
                         <button onclick={() => OpenInstanceFolder(selected.id, dir)}><Icon name={icon} />{t('folder.' + (dir || 'root'))}</button>
                       {/if}
                     {/each}

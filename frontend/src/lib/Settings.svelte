@@ -10,7 +10,7 @@
   const init = untrack(() => ({ ...app.settings, maxMemory: app.maxMemory }))
   const min = 1024
   const max = Math.max(min, Math.floor((init.maxMemory * 0.75) / 512) * 512)
-  let memory = $state(Math.min(init.memoryMb, max))
+  let memory = $state(Math.max(min, Math.min(init.memoryMb, max)))
   let closeOnLaunch = $state(init.closeOnLaunch)
   let jvmArgs = $state(init.jvmArgs ?? '')
   let accent = $state(init.accent || 'yellow')

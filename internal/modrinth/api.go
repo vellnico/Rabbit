@@ -119,6 +119,8 @@ func Search(ctx context.Context, p SearchParams) (*SearchResult, error) {
 		if len(or) > 0 {
 			facets = append(facets, or)
 		}
+	} else if p.Type == TypeShader && p.Loader == "optifine" {
+		facets = append(facets, []string{"categories:optifine"})
 	}
 	fb, _ := json.Marshal(facets)
 	sort := p.Sort

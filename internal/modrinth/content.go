@@ -177,6 +177,8 @@ func (in *installer) pickVersion(ctx context.Context, id, projectType string) (*
 	var loaders []string
 	if projectType == TypeMod || projectType == "" {
 		loaders = loaderNames(in.loader)
+	} else if projectType == TypeShader && in.loader == "optifine" {
+		loaders = []string{"optifine"} // OptiFine reads its own shader format only
 	}
 	list, err := ProjectVersions(ctx, id, in.game, loaders)
 	if err != nil {
@@ -184,7 +186,7 @@ func (in *installer) pickVersion(ctx context.Context, id, projectType string) (*
 	}
 	if len(list) == 0 && (projectType == TypeResourcePack || projectType == TypeShader) {
 		// Packs often work on newer game versions than they declare.
-		list, err = ProjectVersions(ctx, id, "", nil)
+		list, err = ProjectVersions(ctx, id, "", loaders)
 		if err != nil {
 			return nil, err
 		}

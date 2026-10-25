@@ -4,7 +4,7 @@
   import Library from './Library.svelte'
   import Icon from './Icon.svelte'
   import { t, tErr } from './i18n.svelte.js'
-  import { loaders } from './theme.js'
+  import { loaders, formatLoaderVersion } from './theme.js'
   import { ListVersions, ListLoaderVersions, CreateInstance, ImportModpack, InstallModpack } from '../../wailsjs/go/main/App.js'
   import { EventsOn } from '../../wailsjs/runtime/runtime.js'
 
@@ -64,7 +64,9 @@
         loaderVersions = list ?? []
         loaderVersion = loaderVersions[0] ?? ''
       })
-      .catch(() => (loaderVersions = []))
+      .catch(() => {
+        if (l === loader && v === version) loaderVersions = []
+      })
       .finally(() => {
         if (l === loader && v === version) loaderLoading = false
       })
@@ -133,7 +135,7 @@
           {:else if !loaderVersions.length}
             <option value="">{t('noLoaderVersions', { version })}</option>
           {/if}
-          {#each loaderVersions as lv (lv)}<option value={lv}>{lv}</option>{/each}
+          {#each loaderVersions as lv (lv)}<option value={lv}>{formatLoaderVersion(loader, lv)}</option>{/each}
         </select>
       {/if}
     </div>

@@ -117,12 +117,14 @@ func (a *App) ListLoaderVersions(loader, game string) ([]string, error) {
 		return mojang.NeoForgeVersions(a.ctx, game)
 	case "fabric", "quilt":
 		return mojang.ProfileLoaderVersions(a.ctx, loader, game)
+	case "optifine":
+		return mojang.OptiFineVersions(a.ctx, game)
 	}
 	return nil, nil
 }
 
 func validLoader(l string) bool {
-	return l == "vanilla" || mojang.IsProfileLoader(l) || mojang.IsInstallerLoader(l)
+	return l == "vanilla" || mojang.IsProfileLoader(l) || mojang.IsInstallerLoader(l) || mojang.IsOptiFine(l)
 }
 
 func (a *App) CreateInstance(name, game, loader, loaderVersion string) (store.Instance, error) {
@@ -448,6 +450,8 @@ func (a *App) prepare(ctx context.Context, in store.Instance, acc *auth.Account)
 			id, err = mojang.EnsureProfileLoader(ctx, in.Loader, in.GameVersion, in.LoaderVersion)
 		case mojang.IsInstallerLoader(in.Loader):
 			id, err = mojang.EnsureInstallerLoader(ctx, in.Loader, in.GameVersion, in.LoaderVersion, javaExe)
+		case mojang.IsOptiFine(in.Loader):
+			id, err = mojang.EnsureOptiFine(ctx, in.GameVersion, in.LoaderVersion, javaExe)
 		default:
 			err = errors.New("unknown loader " + in.Loader)
 		}
